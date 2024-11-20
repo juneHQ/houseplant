@@ -2,6 +2,7 @@
 
 import os
 from rich.console import Console
+from clickhouse_driver import Client
 
 
 class Houseplant:
@@ -17,6 +18,19 @@ class Houseplant:
 
         # Create schema.yml file
         open("ch/schema.yml", "a").close()
+
+        # Create schema_migrations table
+        client = Client("localhost", database="june_development")
+        client.execute("""
+            CREATE TABLE IF NOT EXISTS schema_migrations (
+                version LowCardinality(String),
+                active UInt8 NOT NULL DEFAULT 1,
+                created_at DateTime64(6, 'UTC') NOT NULL DEFAULT now64()
+            )
+            ENGINE = ReplacingMergeTree(created_at)
+            PRIMARY KEY(version)
+            ORDER BY (version)
+        """)
 
         self.console.print("✨ Project initialized successfully!")
 
