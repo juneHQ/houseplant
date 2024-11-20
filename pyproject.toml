@@ -28,6 +28,8 @@ dev = [
     "coverage",  # testing
     "mypy",  # linting
     "pytest",  # testing
+    "pytest-cov",  # testing
+    "pytest-mock",  # mocking
     "ruff"  # linting
 ]
 

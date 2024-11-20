@@ -42,5 +42,5 @@ class ClickHouseClient:
         """Mark a migration as applied."""
         self.client.execute("""
             INSERT INTO schema_migrations (version, active)
-            VALUES (%s, 1)
-        """, (version,))
+            VALUES
+        """, [{'version': version, 'active': 1}])
