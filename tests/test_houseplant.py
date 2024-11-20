@@ -5,9 +5,6 @@
 import pytest
 
 
-from houseplant import houseplant
-
-
 @pytest.fixture
 def response():
     """Sample pytest fixture.

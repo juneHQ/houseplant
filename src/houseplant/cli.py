@@ -1,56 +1,50 @@
 """Console script for houseplant."""
 
-import houseplant
 import os
-
 import typer
 from rich.console import Console
+from houseplant import Houseplant
 
 app = typer.Typer()
-console = Console()
+hp = Houseplant()
 
 
 @app.command()
 def init():
     """Initialize a new houseplant project."""
-    console.print("Initializing new houseplant project...")
+    hp.init()
 
 
 @app.command(name="migrate:status")
 def migrate_status():
     """Show status of database migrations."""
-    console.print("Checking migration status...")
+    hp.migrate_status()
 
 
 @app.command(name="migrate:up")
 def migrate_up(version: str | None = None):
     """Run migrations up to specified version."""
     version = version or os.getenv("VERSION")
-    if version:
-        console.print(f"Running migrations up to version {version}...")
-    else:
-        console.print("Running all pending migrations...")
+    hp.migrate_up(version)
 
 
 @app.command(name="migrate:down")
 def migrate_down(version: str | None = None):
     """Roll back migrations to specified version."""
     version = version or os.getenv("VERSION")
-    if version:
-        console.print(f"Rolling back migrations to version {version}...")
-    else:
-        console.print("Rolling back all migrations...")
+    hp.migrate_down(version)
 
 
 @app.command(name="migrate")
 def migrate(version: str | None = None):
     """Run migrations up to specified version."""
-    migrate_up(version)
+    hp.migrate(version)
 
 
 @app.command(hidden=True)
 def main():
     """Console script for houseplant."""
+    console = Console()
     console.print(
         "Replace this message by putting your code into " "houseplant.cli.main"
     )
