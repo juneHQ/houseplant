@@ -18,7 +18,9 @@ classifiers = [
 ]
 license = {text = "MIT license"}
 dependencies = [
-  "typer"
+  "clickhouse-driver>=0.2.9",
+  "ruff>=0.7.4",
+  "typer",
 ]
 
 [project.optional-dependencies]
