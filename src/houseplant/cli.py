@@ -41,6 +41,12 @@ def migrate(version: str | None = None):
     hp.migrate(version)
 
 
+@app.command(name="generate")
+def generate(name: str):
+    """Generate a new migration."""
+    hp.generate(name)
+
+
 @app.command(hidden=True)
 def main():
     """Console script for houseplant."""

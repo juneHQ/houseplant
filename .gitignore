@@ -108,3 +108,5 @@ ENV/
 .vscode/
 .idea/
 
+# Houseplant
+ch/
