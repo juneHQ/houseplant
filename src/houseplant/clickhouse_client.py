@@ -1,7 +1,6 @@
 """ClickHouse database operations module."""
 
 from clickhouse_driver import Client
-from datetime import datetime
 import os
 
 

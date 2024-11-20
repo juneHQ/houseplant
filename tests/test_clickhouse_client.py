@@ -1,5 +1,4 @@
 import pytest
-from datetime import datetime
 
 @pytest.fixture
 def migrations_table(ch_client):
