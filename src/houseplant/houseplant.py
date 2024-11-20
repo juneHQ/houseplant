@@ -3,6 +3,8 @@
 import os
 from rich.console import Console
 from clickhouse_driver import Client
+from datetime import datetime
+
 
 
 class Houseplant:
@@ -55,5 +57,20 @@ class Houseplant:
 
     def generate(self, name: str):
         """Generate a new migration."""
-        # TODO: Implement migration generation logic
-        pass
+
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+
+        migration_name = name.replace(" ", "_").replace("-", "_").lower()
+        migration_file = f"ch/migrations/{timestamp}_{migration_name}.yml"
+
+        with open(migration_file, "w") as f:
+            f.write(f"""version: "{timestamp}"
+name: {migration_name}
+up:
+  sql: ""
+
+down:
+  sql: ""
+""")
+
+        self.console.print(f"✨ Generated migration: {migration_file}")
