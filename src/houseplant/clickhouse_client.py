@@ -7,8 +7,8 @@ import os
 class ClickHouseClient:
     def __init__(self, host=None, database=None):
         self.client = Client(
-            host=host or os.getenv('CLICKHOUSE_HOST', 'localhost'),
-            database=database or os.getenv('CLICKHOUSE_DB', 'june_development')
+            host=host or os.getenv("CLICKHOUSE_HOST", "localhost"),
+            database=database or os.getenv("CLICKHOUSE_DB", "june_development"),
         )
 
     def init_migrations_table(self):
@@ -39,7 +39,10 @@ class ClickHouseClient:
 
     def mark_migration_applied(self, version: str):
         """Mark a migration as applied."""
-        self.client.execute("""
+        self.client.execute(
+            """
             INSERT INTO schema_migrations (version, active)
             VALUES
-        """, [{'version': version, 'active': 1}])
+        """,
+            [{"version": version, "active": 1}],
+        )

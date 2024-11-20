@@ -25,7 +25,9 @@ class Houseplant:
     def migrate_status(self):
         """Show status of database migrations."""
         # Get applied migrations from database
-        applied_migrations = {version[0] for version in self.db.get_applied_migrations()}
+        applied_migrations = {
+            version[0] for version in self.db.get_applied_migrations()
+        }
 
         # Get all local migration files
         migrations_dir = "ch/migrations"
@@ -33,20 +35,26 @@ class Houseplant:
             self.console.print("[red]No migrations directory found.[/red]")
             return
 
-        migration_files = sorted([f for f in os.listdir(migrations_dir) if f.endswith('.yml')])
-        
+        migration_files = sorted(
+            [f for f in os.listdir(migrations_dir) if f.endswith(".yml")]
+        )
+
         if not migration_files:
             self.console.print("[yellow]No migrations found.[/yellow]")
             return
 
         self.console.print("\n[bold]Database migrations status:[/bold]\n")
-        
+
         for migration_file in migration_files:
-            version = migration_file.split('_')[0]
-            status = "[green]up[/green]" if version in applied_migrations else "[red]down[/red]"
-            name = ' '.join(migration_file.split('_')[1:]).replace('.yml', '')
+            version = migration_file.split("_")[0]
+            status = (
+                "[green]up[/green]"
+                if version in applied_migrations
+                else "[red]down[/red]"
+            )
+            name = " ".join(migration_file.split("_")[1:]).replace(".yml", "")
             self.console.print(f"{status}\t{version}\t{name}")
-        
+
         self.console.print("")
 
     def migrate_up(self, version: str | None = None):
