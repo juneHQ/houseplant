@@ -24,6 +24,35 @@ class ClickHouseClient:
             ORDER BY (version)
         """)
 
+    def get_database_schema(self):
+        """Get the database schema organized by table."""
+        result = self.client.execute("""
+            SELECT 
+                table,
+                name,
+                type,
+                default_expression,
+                compression_codec,
+                is_nullable
+            FROM system.columns
+            WHERE database = currentDatabase()
+            ORDER BY table, name
+        """)
+
+        schema = {}
+        for table, column, type_, default, codec, nullable in result:
+            if table not in schema:
+                schema[table] = {}
+            schema[table][column] = {
+                "type": type_,
+                "default": default if default else None,
+                "compression_codec": codec,
+                "is_nullable": nullable,
+            }
+
+        return schema
+
+
     def get_applied_migrations(self):
         """Get list of applied migrations."""
         return self.client.execute("""
