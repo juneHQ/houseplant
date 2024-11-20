@@ -2,37 +2,23 @@
 
 import os
 from rich.console import Console
-from clickhouse_driver import Client
 from datetime import datetime
-
+from .clickhouse_client import ClickHouseClient
 
 
 class Houseplant:
     def __init__(self):
         self.console = Console()
+        self.db = ClickHouseClient()
 
     def init(self):
         """Initialize a new houseplant project."""
         self.console.print("Initializing new houseplant project...")
 
-        # Create ch directory and migrations subdirectory
         os.makedirs("ch/migrations", exist_ok=True)
-
-        # Create schema.yml file
         open("ch/schema.yml", "a").close()
 
-        # Create schema_migrations table
-        client = Client("localhost", database="june_development")
-        client.execute("""
-            CREATE TABLE IF NOT EXISTS schema_migrations (
-                version LowCardinality(String),
-                active UInt8 NOT NULL DEFAULT 1,
-                created_at DateTime64(6, 'UTC') NOT NULL DEFAULT now64()
-            )
-            ENGINE = ReplacingMergeTree(created_at)
-            PRIMARY KEY(version)
-            ORDER BY (version)
-        """)
+        self.db.init_migrations_table()
 
         self.console.print("✨ Project initialized successfully!")
 
