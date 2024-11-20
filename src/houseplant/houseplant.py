@@ -10,6 +10,7 @@ class Houseplant:
     def init(self):
         """Initialize a new houseplant project."""
         # TODO: Implement initialization logic
+        self.console.print("Initializing new houseplant project...")
         pass
 
     def migrate_status(self):
