@@ -104,8 +104,8 @@ def test_get_database_schema(ch_client):
     columns = schema["tables"]["test_table"]["columns"]
     assert "id" in columns
     assert columns["id"]["type"] == "UInt32"
-    assert not columns["id"]["has_default"]
+    assert not columns["id"]["default_value"]
 
     assert "name" in columns
     assert columns["name"]["type"] == "String"
-    assert not columns["name"]["has_default"]
+    assert not columns["name"]["default_value"]
