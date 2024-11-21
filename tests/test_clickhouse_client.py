@@ -78,3 +78,34 @@ def test_mark_migration_applied(migrations_table):
     assert len(result) == 1
     assert result[0][0] == test_version
     assert result[0][1] == 1
+
+
+def test_get_database_schema(ch_client):
+    """Test getting database schema."""
+    test_sql = """
+        CREATE TABLE test_table (
+            id UInt32,
+            name String
+        ) ENGINE = MergeTree()
+        ORDER BY id
+    """
+
+    ch_client.execute_migration(test_sql)
+    ch_client.init_migrations_table()
+
+    schema = ch_client.get_database_schema()
+
+    assert "schema_migrations" not in schema["tables"]
+    assert "test_table" in schema["tables"]
+    assert schema["tables"]["test_table"]["engine"] == "MergeTree"
+    assert schema["tables"]["test_table"]["primary_key"] == "id"
+    assert schema["tables"]["test_table"]["sorting_key"] == "id"
+
+    columns = schema["tables"]["test_table"]["columns"]
+    assert "id" in columns
+    assert columns["id"]["type"] == "UInt32"
+    assert not columns["id"]["default_value"]
+
+    assert "name" in columns
+    assert columns["name"]["type"] == "String"
+    assert not columns["name"]["default_value"]
