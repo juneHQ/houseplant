@@ -64,10 +64,10 @@ class ClickHouseClient:
             WHERE database = currentDatabase() 
             AND name = 'schema_migrations'
         """)
-        
+
         if not table_exists:
             return None
-        
+
         result = self.client.execute("""
             SELECT MAX(version) FROM schema_migrations WHERE active = 1
         """)
