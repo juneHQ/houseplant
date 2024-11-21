@@ -1,6 +1,8 @@
+import time
+
 import pytest
 from clickhouse_driver import Client
-import time
+
 from houseplant.clickhouse_client import ClickHouseClient
 
 

@@ -1,12 +1,13 @@
 """Main module."""
 
 import os
-from time import sleep
-from rich.table import Table
-from rich.console import Console
 from datetime import datetime
-from .clickhouse_client import ClickHouseClient
+
 import yaml
+from rich.console import Console
+from rich.table import Table
+
+from .clickhouse_client import ClickHouseClient
 
 
 class Houseplant:
@@ -18,7 +19,7 @@ class Houseplant:
         """Initialize a new houseplant project."""
         with self.console.status(
             "[bold green]Initializing new houseplant project..."
-        ) as status:
+        ):
             os.makedirs("ch/migrations", exist_ok=True)
             open("ch/schema.yml", "a").close()
 

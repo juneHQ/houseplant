@@ -1,7 +1,8 @@
 """ClickHouse database operations module."""
 
-from clickhouse_driver import Client
 import os
+
+from clickhouse_driver import Client
 
 
 class ClickHouseClient:
@@ -59,9 +60,9 @@ class ClickHouseClient:
         """Get the latest migration version."""
         # First check if the table exists
         table_exists = self.client.execute("""
-            SELECT name 
-            FROM system.tables 
-            WHERE database = currentDatabase() 
+            SELECT name
+            FROM system.tables
+            WHERE database = currentDatabase()
             AND name = 'schema_migrations'
         """)
 
@@ -76,7 +77,7 @@ class ClickHouseClient:
     def get_database_tables(self):
         """Get the database tables with their engines, indexes and partitioning."""
         return self.client.execute("""
-            SELECT 
+            SELECT
                 name,
                 engine,
                 partition_key,
@@ -91,7 +92,7 @@ class ClickHouseClient:
     def get_database_columns(self):
         """Get the database columns organized by table."""
         result = self.client.execute("""
-            SELECT 
+            SELECT
                 table,
                 name,
                 type,
@@ -148,8 +149,8 @@ class ClickHouseClient:
             """
             INSERT INTO schema_migrations (version, active, created_at)
             VALUES (
-                %(version)s, 
-                0, 
+                %(version)s,
+                0,
                 now64()
             )
             """,

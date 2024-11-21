@@ -1,8 +1,10 @@
 from typing import Generator
+
 import pytest
 from typer.testing import CliRunner
-from houseplant.cli import app
+
 from houseplant import Houseplant
+from houseplant.cli import app
 
 runner = CliRunner()
 

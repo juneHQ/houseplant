@@ -1,10 +1,12 @@
 """Console script for houseplant."""
 
 import os
+from typing import Optional
+
 import typer
 from rich.console import Console
+
 from houseplant import Houseplant
-from typing import Optional
 
 app = typer.Typer()
 
