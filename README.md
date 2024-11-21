@@ -1,5 +1,5 @@
 <p align="center">
-   <img src="houseplant-1.png" width="300">
+   <img src="./houseplant.png" width="300">
 </p>
 
 # houseplant
