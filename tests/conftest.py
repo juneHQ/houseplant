@@ -1,6 +1,7 @@
 import pytest
 from clickhouse_driver import Client
 import time
+from houseplant.clickhouse_client import ClickHouseClient
 
 
 def check_clickhouse_connection(host="localhost", port=9000, attempts=3):
@@ -32,8 +33,6 @@ def clickhouse_service():
 @pytest.fixture
 def ch_client(clickhouse_service):
     """Create a fresh database for each test."""
-    from houseplant.clickhouse_client import ClickHouseClient
-
     test_db = f"houseplant_test_{time.time_ns()}"
 
     ch_client = Client(host=clickhouse_service["host"], port=clickhouse_service["port"])
