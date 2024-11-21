@@ -5,10 +5,17 @@ import os
 
 
 class ClickHouseClient:
-    def __init__(self, host=None, database=None):
+    def __init__(self, host=None, database=None, port=None):
+        host = host or os.getenv("CLICKHOUSE_HOST", "localhost")
+        if ":" in host:
+            host, port = host.split(":")
+
         self.client = Client(
-            host=host or os.getenv("CLICKHOUSE_HOST", "localhost"),
+            host=host,
+            port=port or os.getenv("CLICKHOUSE_PORT", 9000),
             database=database or os.getenv("CLICKHOUSE_DB", "june_development"),
+            user=os.getenv("CLICKHOUSE_USER", "default"),
+            password=os.getenv("CLICKHOUSE_PASSWORD", ""),
         )
 
     def init_migrations_table(self):
@@ -51,7 +58,6 @@ class ClickHouseClient:
             }
 
         return schema
-
 
     def get_applied_migrations(self):
         """Get list of applied migrations."""
