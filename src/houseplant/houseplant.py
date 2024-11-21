@@ -21,7 +21,7 @@ class Houseplant:
             "[bold green]Initializing new houseplant project..."
         ):
             os.makedirs("ch/migrations", exist_ok=True)
-            open("ch/schema.yml", "a").close()
+            open("ch/schema.sql", "a").close()
 
             self.db.init_migrations_table()
 
@@ -217,5 +217,6 @@ down:
 
         schema = self.db.get_database_schema()
 
-        with open("ch/schema.yml", "w") as f:
-            yaml.dump(schema, f)
+        with open("ch/schema.sql", "w") as f:
+            f.write(f"-- version: {schema['version']}\n\n")
+            f.write("\n;\n\n".join(schema["tables"]) + ";")
