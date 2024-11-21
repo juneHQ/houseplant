@@ -111,7 +111,7 @@ class ClickHouseClient:
                 "type": type_,
                 "default": default_expression if default_kind else None,
                 "compression_codec": codec,
-                "has_default": bool(default_kind),
+                "default_value": default_kind,
             }
 
         return schema
