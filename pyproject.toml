@@ -19,6 +19,7 @@ classifiers = [
 license = {text = "MIT license"}
 dependencies = [
   "clickhouse-driver>=0.2.9",
+  "pyyaml>=6.0.2",
   "ruff>=0.7.4",
   "typer",
 ]
