@@ -17,9 +17,7 @@ class Houseplant:
 
     def init(self):
         """Initialize a new houseplant project."""
-        with self.console.status(
-            "[bold green]Initializing new houseplant project..."
-        ):
+        with self.console.status("[bold green]Initializing new houseplant project..."):
             os.makedirs("ch/migrations", exist_ok=True)
             open("ch/schema.sql", "a").close()
 
