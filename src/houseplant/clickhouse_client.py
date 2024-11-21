@@ -40,7 +40,7 @@ class ClickHouseClient:
         latest_migration = self.get_latest_migration()
 
         schema = {
-            "version": latest_migration,
+            "version": latest_migration or "0",
             "tables": {},
         }
         for row in tables_data:
@@ -57,6 +57,17 @@ class ClickHouseClient:
 
     def get_latest_migration(self):
         """Get the latest migration version."""
+        # First check if the table exists
+        table_exists = self.client.execute("""
+            SELECT name 
+            FROM system.tables 
+            WHERE database = currentDatabase() 
+            AND name = 'schema_migrations'
+        """)
+        
+        if not table_exists:
+            return None
+        
         result = self.client.execute("""
             SELECT MAX(version) FROM schema_migrations WHERE active = 1
         """)
@@ -73,7 +84,7 @@ class ClickHouseClient:
                 primary_key,
                 sampling_key
             FROM system.tables
-            WHERE database = currentDatabase()
+            WHERE database = currentDatabase() AND name != 'schema_migrations'
             ORDER BY name
         """)
 

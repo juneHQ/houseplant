@@ -91,15 +91,17 @@ def test_get_database_schema(ch_client):
     """
 
     ch_client.execute_migration(test_sql)
+    ch_client.init_migrations_table()
 
     schema = ch_client.get_database_schema()
 
-    assert "test_table" in schema
-    assert schema["test_table"]["engine"] == "MergeTree"
-    assert schema["test_table"]["primary_key"] == "id"
-    assert schema["test_table"]["sorting_key"] == "id"
+    assert "schema_migrations" not in schema["tables"]
+    assert "test_table" in schema["tables"]
+    assert schema["tables"]["test_table"]["engine"] == "MergeTree"
+    assert schema["tables"]["test_table"]["primary_key"] == "id"
+    assert schema["tables"]["test_table"]["sorting_key"] == "id"
 
-    columns = schema["test_table"]["columns"]
+    columns = schema["tables"]["test_table"]["columns"]
     assert "id" in columns
     assert columns["id"]["type"] == "UInt32"
     assert not columns["id"]["has_default"]
