@@ -37,10 +37,15 @@ class ClickHouseClient:
 
         tables_data = self.get_database_tables()
 
-        schema = {}
+        latest_migration = self.get_latest_migration()
+
+        schema = {
+            "version": latest_migration,
+            "tables": {},
+        }
         for row in tables_data:
             table_name = row[0]
-            schema[table_name] = {
+            schema["tables"][table_name] = {
                 "engine": row[1],
                 "partition_key": row[2],
                 "sorting_key": row[3],
@@ -49,6 +54,13 @@ class ClickHouseClient:
                 "columns": columns_schema[table_name],
             }
         return schema
+
+    def get_latest_migration(self):
+        """Get the latest migration version."""
+        result = self.client.execute("""
+            SELECT MAX(version) FROM schema_migrations WHERE active = 1
+        """)
+        return result[0][0] if result else None
 
     def get_database_tables(self):
         """Get the database tables with their engines, indexes and partitioning."""

@@ -115,8 +115,8 @@ class Houseplant:
                     f"[yellow]⚠[/yellow] Empty migration {migration_file}"
                 )
 
-            # Stop if we've reached target version
             if version and migration_version == version:
+                self.update_schema()
                 break
 
     def migrate_down(self, version: str | None = None):
@@ -168,6 +168,7 @@ class Houseplant:
             if migration["down"]["sql"]:
                 self.db.execute_migration(migration["down"]["sql"])
                 self.db.mark_migration_rolled_back(migration_version)
+                self.update_schema()
                 self.console.print(
                     f"[green]✓[/green] Rolled back migration {migration_file}"
                 )
@@ -199,3 +200,11 @@ down:
 """)
 
         self.console.print(f"✨ Generated migration: {migration_file}")
+
+    def update_schema(self):
+        """Update the schema file with the current database schema."""
+
+        schema = self.db.get_database_schema()
+
+        with open("ch/schema.yml", "w") as f:
+            yaml.dump(schema, f)
