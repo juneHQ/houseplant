@@ -34,26 +34,19 @@ class ClickHouseClient:
 
     def get_database_schema(self):
         """Get the database schema organized by table."""
-        columns_schema = self.get_database_columns()
-
-        tables_data = self.get_database_tables()
+        tables = self.get_database_tables()
 
         latest_migration = self.get_latest_migration()
 
         schema = {
             "version": latest_migration or "0",
-            "tables": {},
+            "tables": [],
         }
-        for row in tables_data:
-            table_name = row[0]
-            schema["tables"][table_name] = {
-                "engine": row[1],
-                "partition_key": row[2],
-                "sorting_key": row[3],
-                "primary_key": row[4],
-                "sampling_key": row[5],
-                "columns": columns_schema[table_name],
-            }
+        for row in tables:
+            table = row[0]
+            result = self.client.execute(f"SHOW CREATE TABLE {table}")
+            schema["tables"].append(result[0][0])
+
         return schema
 
     def get_latest_migration(self):
@@ -78,44 +71,13 @@ class ClickHouseClient:
         """Get the database tables with their engines, indexes and partitioning."""
         return self.client.execute("""
             SELECT
-                name,
-                engine,
-                partition_key,
-                sorting_key,
-                primary_key,
-                sampling_key
+                name
             FROM system.tables
-            WHERE database = currentDatabase() AND name != 'schema_migrations'
+            WHERE database = currentDatabase()
+                AND engine NOT IN ('MaterializedView', 'Dictionary')
+                AND name != 'schema_migrations'
             ORDER BY name
         """)
-
-    def get_database_columns(self):
-        """Get the database columns organized by table."""
-        result = self.client.execute("""
-            SELECT
-                table,
-                name,
-                type,
-                default_kind,
-                default_expression,
-                compression_codec
-            FROM system.columns
-            WHERE database = currentDatabase()
-            ORDER BY table, name
-        """)
-
-        schema = {}
-        for table, column, type_, codec, default_kind, default_expression in result:
-            if table not in schema:
-                schema[table] = {}
-            schema[table][column] = {
-                "type": type_,
-                "default": default_expression if default_kind else None,
-                "compression_codec": codec,
-                "default_value": default_kind,
-            }
-
-        return schema
 
     def get_applied_migrations(self):
         """Get list of applied migrations."""
@@ -141,6 +103,12 @@ class ClickHouseClient:
             VALUES (%(version)s, 1)
             """,
             {"version": version},
+        )
+
+        self.client.execute(
+            """
+            OPTIMIZE TABLE schema_migrations FINAL
+            """
         )
 
     def mark_migration_rolled_back(self, version: str):

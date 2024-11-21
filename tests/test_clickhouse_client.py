@@ -52,8 +52,8 @@ def test_execute_migration(ch_client):
     ch_client.execute_migration(test_sql)
 
     result = ch_client.client.execute("""
-        SELECT name 
-        FROM system.tables 
+        SELECT name
+        FROM system.tables
         WHERE database = currentDatabase() AND name = 'test_table'
     """)
 
@@ -95,17 +95,8 @@ def test_get_database_schema(ch_client):
 
     schema = ch_client.get_database_schema()
 
-    assert "schema_migrations" not in schema["tables"]
-    assert "test_table" in schema["tables"]
-    assert schema["tables"]["test_table"]["engine"] == "MergeTree"
-    assert schema["tables"]["test_table"]["primary_key"] == "id"
-    assert schema["tables"]["test_table"]["sorting_key"] == "id"
-
-    columns = schema["tables"]["test_table"]["columns"]
-    assert "id" in columns
-    assert columns["id"]["type"] == "UInt32"
-    assert not columns["id"]["default_value"]
-
-    assert "name" in columns
-    assert columns["name"]["type"] == "String"
-    assert not columns["name"]["default_value"]
+    assert schema["version"] == "0"
+    assert len(schema["tables"]) == 1
+    assert schema["tables"][0].startswith("CREATE TABLE houseplant_test_")
+    assert "test_table" in schema["tables"][0]
+    assert "ENGINE = MergeTree" in schema["tables"][0]
