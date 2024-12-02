@@ -14,7 +14,7 @@ class ClickHouseClient:
         self.client = Client(
             host=host,
             port=port or os.getenv("CLICKHOUSE_PORT", 9000),
-            database=database or os.getenv("CLICKHOUSE_DB", "june_development"),
+            database=database or os.getenv("CLICKHOUSE_DB", "development"),
             user=os.getenv("CLICKHOUSE_USER", "default"),
             password=os.getenv("CLICKHOUSE_PASSWORD", ""),
         )
