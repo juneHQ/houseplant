@@ -222,6 +222,7 @@ table:
 development: &development
   up: |
   down: |
+    DROP TABLE {{table}}
 
 test:
   <<: *development
@@ -229,6 +230,7 @@ test:
 production:
   up: |
   down: |
+    DROP TABLE {{table}}
 """)
 
             self.console.print(f"✨ Generated migration: {migration_file}")
