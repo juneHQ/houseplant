@@ -1,28 +1,36 @@
-[build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
-
 [project]
 name = "houseplant"
 version = "0.1.0"
-description = "Python Boilerplate contains all the boilerplate you need to create a Python package."
-readme = "README.rst"
-authors = [
-  {name = "June", email = "eng@june.so"}
-]
-maintainers = [
-  {name = "June", email = "eng@june.so"}
-]
-classifiers = [
-
-]
+description = "Database Migrations for ClickHouse."
+readme = "README.md"
+authors = [{name = "June", email = "eng@june.so"}]
+maintainers = [{name = "June", email = "eng@june.so"}]
 license = {text = "MIT license"}
+classifiers = [
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+]
 dependencies = [
   "clickhouse-driver>=0.2.9",
   "pyyaml>=6.0.2",
   "ruff>=0.7.4",
   "typer",
 ]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project.urls]
+Homepage = "https://github.com/juneHQ/houseplant"
+Changelog = "https://github.com/juneHQ/houseplant/releases"
+Issues = "https://github.com/juneHQ/houseplant/issues"
+CI = "https://github.com/juneHQ/houseplant/actions"
+
+[project.scripts]
+houseplant = "houseplant.cli:app"
 
 [project.optional-dependencies]
 dev = [
@@ -33,35 +41,3 @@ dev = [
     "pytest-mock",  # mocking
     "ruff"  # linting
 ]
-
-[project.urls]
-
-bugs = "https://github.com/juneHQ/houseplant/issues"
-changelog = "https://github.com/juneHQ/houseplant/blob/master/changelog.md"
-homepage = "https://github.com/juneHQ/houseplant"
-
-[tool.setuptools]
-package-dir = {"" = "src"}
-
-[tool.setuptools.package-data]
-"*" = ["*.*"]
-
-# Mypy
-# ----
-
-[tool.mypy]
-files = "."
-
-# Use strict defaults
-strict = true
-warn_unreachable = true
-warn_no_return = true
-
-[[tool.mypy.overrides]]
-# Don't require test functions to include types
-module = "tests.*"
-allow_untyped_defs = true
-disable_error_code = "attr-defined"
-
-[project.scripts]
-houseplant = "houseplant.cli:app"
