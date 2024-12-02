@@ -50,6 +50,45 @@ production:
     return migration_content
 
 
+@pytest.fixture
+def test_migration_with_settings(tmp_path):
+    # Set up test environment
+    migrations_dir = tmp_path / "ch/migrations"
+    migrations_dir.mkdir(parents=True)
+    migration_file = migrations_dir / "20240101000000_test_settings.yml"
+
+    migration_content = """version: "20240101000000"
+name: test_settings
+
+table_definition: |
+    id UInt32,
+    name String,
+    created_at DateTime
+table_settings: |
+    ORDER BY (id, created_at)
+    PARTITION BY toYYYYMM(created_at)
+
+development: &development
+  up: |
+    CREATE TABLE settings_table (
+        {table_definition}
+    ) ENGINE = MergeTree()
+    {table_settings}
+  down: |
+    DROP TABLE settings_table
+
+test:
+  <<: *development
+
+production:
+  <<: *development
+"""
+
+    migration_file.write_text(migration_content)
+    os.chdir(tmp_path)
+    return migration_content
+
+
 def test_migrate_up_development(houseplant, test_migration, mocker):
     # Mock environment and database calls
     houseplant.env = "development"
@@ -91,6 +130,32 @@ def test_migrate_up_production(houseplant, test_migration, mocker):
     name String
 ) ENGINE = ReplicatedMergeTree('/clickhouse/{cluster}tables/{shard}/test/prod_table', '{replica}')
 ORDER BY id"""
+    mock_execute.assert_called_once_with(expected_sql)
+    mock_mark_applied.assert_called_once_with("20240101000000")
+    mock_get_applied.assert_called_once()
+
+
+def test_migrate_up_with_table_settings(
+    houseplant, test_migration_with_settings, mocker
+):
+    # Mock database calls
+    mock_execute = mocker.patch.object(houseplant.db, "execute_migration")
+    mock_mark_applied = mocker.patch.object(houseplant.db, "mark_migration_applied")
+    mock_get_applied = mocker.patch.object(
+        houseplant.db, "get_applied_migrations", return_value=[]
+    )
+
+    # Run migration
+    houseplant.migrate_up()
+
+    # Verify correct SQL was executed with table_definition and table_settings
+    expected_sql = """CREATE TABLE settings_table (
+    id UInt32,
+name String,
+created_at DateTime
+) ENGINE = MergeTree()
+ORDER BY (id, created_at)
+PARTITION BY toYYYYMM(created_at)"""
     mock_execute.assert_called_once_with(expected_sql)
     mock_mark_applied.assert_called_once_with("20240101000000")
     mock_get_applied.assert_called_once()

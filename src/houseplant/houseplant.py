@@ -116,6 +116,15 @@ class Houseplant:
 
                 # Get migration SQL based on environment
                 migration_sql = migration.get(self.env, {}).get("up", {}).strip()
+
+                table_definition = migration.get("table_definition", "").strip()
+                table_settings = migration.get("table_settings", "").strip()
+
+                if table_definition and table_settings:
+                    migration_sql = migration_sql.format(
+                        table_definition=table_definition, table_settings=table_settings
+                    ).strip()
+
                 if migration_sql:
                     self.db.execute_migration(migration_sql)
                     self.db.mark_migration_applied(migration_version)
