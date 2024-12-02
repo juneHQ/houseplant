@@ -12,7 +12,7 @@ def generate_version(version, prerelease=None, revision=None):
     return "".join(version_parts)
 
 
-__title__ = "Houseplant"
+__title__ = "houseplant"
 __description__ = "Database Migrations for ClickHouse."
 __url__ = "https://github.com/juneHQ/houseplant"
 __version__ = generate_version(VERSION, prerelease=PRERELEASE, revision=REVISION)
