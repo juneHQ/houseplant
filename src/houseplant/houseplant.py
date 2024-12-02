@@ -8,6 +8,7 @@ from rich.console import Console
 from rich.table import Table
 
 from .clickhouse_client import ClickHouseClient
+from .utils import MIGRATIONS_DIR, get_migration_files
 
 
 class Houseplant:
@@ -33,16 +34,7 @@ class Houseplant:
             version[0] for version in self.db.get_applied_migrations()
         }
 
-        # Get all local migration files
-        migrations_dir = "ch/migrations"
-        if not os.path.exists(migrations_dir):
-            self.console.print("[red]No migrations directory found.[/red]")
-            return
-
-        migration_files = sorted(
-            [f for f in os.listdir(migrations_dir) if f.endswith(".yml")]
-        )
-
+        migration_files = get_migration_files()
         if not migration_files:
             self.console.print("[yellow]No migrations found.[/yellow]")
             return
@@ -73,15 +65,7 @@ class Houseplant:
         if version and version.startswith("VERSION="):
             version = version.replace("VERSION=", "")
 
-        migrations_dir = "ch/migrations"
-        if not os.path.exists(migrations_dir):
-            self.console.print("[red]No migrations directory found.[/red]")
-            return
-
-        migration_files = sorted(
-            [f for f in os.listdir(migrations_dir) if f.endswith(".yml")]
-        )
-
+        migration_files = get_migration_files()
         if not migration_files:
             self.console.print("[yellow]No migrations found.[/yellow]")
             return
@@ -111,20 +95,34 @@ class Houseplant:
                     continue
 
                 # Load and execute migration
-                with open(os.path.join(migrations_dir, migration_file), "r") as f:
+                with open(os.path.join(MIGRATIONS_DIR, migration_file), "r") as f:
                     migration = yaml.safe_load(f)
 
                 # Get migration SQL based on environment
                 migration_sql = migration.get(self.env, {}).get("up", {}).strip()
 
+                table = migration.get("table", "").strip()
+
+                if not table:
+                    self.console.print(
+                        "[red]✗[/red] Migration [bold red]failed[/bold red]: "
+                        "'table' field is required in migration file"
+                    )
+                    return
+
                 table_definition = migration.get("table_definition", "").strip()
                 table_settings = migration.get("table_settings", "").strip()
 
+                format_args = {"table": table}
                 if table_definition and table_settings:
-                    migration_sql = migration_sql.format(
-                        table_definition=table_definition, table_settings=table_settings
-                    ).strip()
+                    format_args.update(
+                        {
+                            "table_definition": table_definition,
+                            "table_settings": table_settings,
+                        }
+                    )
 
+                migration_sql = migration_sql.format(**format_args).strip()
                 if migration_sql:
                     self.db.execute_migration(migration_sql)
                     self.db.mark_migration_applied(migration_version)
@@ -146,11 +144,6 @@ class Houseplant:
         if version and version.startswith("VERSION="):
             version = version.replace("VERSION=", "")
 
-        migrations_dir = "ch/migrations"
-        if not os.path.exists(migrations_dir):
-            self.console.print("[red]No migrations directory found.[/red]")
-            return
-
         # Get applied migrations from database
         applied_migrations = sorted(
             [version[0] for version in self.db.get_applied_migrations()], reverse=True
@@ -169,7 +162,7 @@ class Houseplant:
                 migration_file = next(
                     (
                         f
-                        for f in os.listdir(migrations_dir)
+                        for f in os.listdir(MIGRATIONS_DIR)
                         if f.startswith(migration_version) and f.endswith(".yml")
                     ),
                     None,
@@ -182,11 +175,20 @@ class Houseplant:
                     continue
 
                 # Load and execute down migration
-                with open(os.path.join(migrations_dir, migration_file), "r") as f:
+                with open(os.path.join(MIGRATIONS_DIR, migration_file), "r") as f:
                     migration = yaml.safe_load(f)
 
                 # Get migration SQL based on environment
                 migration_sql = migration.get(self.env, {}).get("down", {}).strip()
+                table = migration.get("table", "").strip()
+                if not table:
+                    self.console.print(
+                        "[red]✗[/red] [bold red] Migration failed[/bold red]: "
+                        "'table' field is required in migration file"
+                    )
+                    return
+                migration_sql = migration_sql.format(table=table).strip()
+
                 if migration_sql:
                     self.db.execute_migration(migration_sql)
                     self.db.mark_migration_rolled_back(migration_version)
@@ -233,8 +235,73 @@ production:
     def update_schema(self):
         """Update the schema file with the current database schema."""
 
-        schema = self.db.get_database_schema()
+        # Get all applied migrations in order
+        applied_migrations = self.db.get_applied_migrations()
+        migration_files = get_migration_files()
+        latest_version = applied_migrations[-1][0] if applied_migrations else "0"
 
+        # Get all database objects
+        tables = self.db.get_database_tables()
+        materialized_views = self.db.get_database_materialized_views()
+        dictionaries = self.db.get_database_dictionaries()
+
+        # Group statements by type
+        table_statements = []
+        mv_statements = []
+        dict_statements = []
+
+        for migration_version in applied_migrations:
+            matching_file = next(
+                (f for f in migration_files if f.startswith(migration_version[0])), None
+            )
+
+            if not matching_file:
+                continue
+
+            migration_file = f"ch/migrations/{matching_file}"
+            with open(migration_file) as f:
+                migration_data = yaml.safe_load(f)
+
+            # Extract table name from migration
+            table_name = migration_data.get("table")
+            if not table_name:
+                continue
+
+            # Check tables first
+            for table in tables:
+                if table[0] == table_name:
+                    create_stmt = self.db.client.execute(
+                        f"SHOW CREATE TABLE {table_name}"
+                    )[0][0]
+                    table_statements.append(create_stmt)
+
+            # Then materialized views
+            for mv in materialized_views:
+                if mv[0].startswith(table_name):
+                    mv_name = mv[0]
+                    create_stmt = self.db.client.execute(
+                        f"SHOW CREATE MATERIALIZED VIEW {mv_name}"
+                    )[0][0]
+                    mv_statements.append(create_stmt)
+
+            # Finally dictionaries
+            for dict in dictionaries:
+                if dict[0].startswith(table_name):
+                    dict_name = dict[0]
+                    create_stmt = self.db.client.execute(
+                        f"SHOW CREATE DICTIONARY {dict_name}"
+                    )[0][0]
+                    dict_statements.append(create_stmt)
+
+        # Write schema file
         with open("ch/schema.sql", "w") as f:
-            f.write(f"-- version: {schema['version']}\n\n")
-            f.write("\n;\n\n".join(schema["tables"]) + ";")
+            f.write(f"-- version: {latest_version}\n\n")
+            if table_statements:
+                f.write("-- TABLES\n\n")
+                f.write("\n;\n\n".join(table_statements) + ";")
+            if mv_statements:
+                f.write("-- MATERIALIZED VIEWS\n\n")
+                f.write("\n;\n\n".join(mv_statements) + ";")
+            if dict_statements:
+                f.write("-- DICTIONARIES\n\n")
+                f.write("\n;\n\n".join(dict_statements) + ";")

@@ -20,29 +20,30 @@ def test_migration(tmp_path):
 
     migration_content = """version: "20240101000000"
 name: test_migration
+table: events
 
 development: &development
   up: |
-    CREATE TABLE dev_table (
+    CREATE TABLE {table} (
         id UInt32,
         name String
     ) ENGINE = MergeTree()
     ORDER BY id
   down: |
-    DROP TABLE dev_table
+    DROP TABLE {table}
 
 test:
   <<: *development
 
 production:
   up: |
-    CREATE TABLE prod_table (
+    CREATE TABLE {table} (
         id UInt32,
         name String
-    ) ENGINE = ReplicatedMergeTree('/clickhouse/{cluster}tables/{shard}/test/prod_table', '{replica}')
+    ) ENGINE = ReplicatedMergeTree()
     ORDER BY id
   down: |
-    DROP TABLE prod_table
+    DROP TABLE {table}
 """
 
     migration_file.write_text(migration_content)
@@ -59,6 +60,7 @@ def test_migration_with_settings(tmp_path):
 
     migration_content = """version: "20240101000000"
 name: test_settings
+table: settings_table
 
 table_definition: |
     id UInt32,
@@ -70,12 +72,12 @@ table_settings: |
 
 development: &development
   up: |
-    CREATE TABLE settings_table (
+    CREATE TABLE {table} (
         {table_definition}
     ) ENGINE = MergeTree()
     {table_settings}
   down: |
-    DROP TABLE settings_table
+    DROP TABLE {table}
 
 test:
   <<: *development
@@ -102,7 +104,7 @@ def test_migrate_up_development(houseplant, test_migration, mocker):
     houseplant.migrate_up()
 
     # Verify correct SQL was executed
-    expected_sql = """CREATE TABLE dev_table (
+    expected_sql = """CREATE TABLE events (
     id UInt32,
     name String
 ) ENGINE = MergeTree()
@@ -125,10 +127,10 @@ def test_migrate_up_production(houseplant, test_migration, mocker):
     houseplant.migrate_up()
 
     # Verify correct SQL was executed
-    expected_sql = """CREATE TABLE prod_table (
+    expected_sql = """CREATE TABLE events (
     id UInt32,
     name String
-) ENGINE = ReplicatedMergeTree('/clickhouse/{cluster}tables/{shard}/test/prod_table', '{replica}')
+) ENGINE = ReplicatedMergeTree()
 ORDER BY id"""
     mock_execute.assert_called_once_with(expected_sql)
     mock_mark_applied.assert_called_once_with("20240101000000")
@@ -176,6 +178,6 @@ def test_migrate_down(houseplant, test_migration, mocker):
     houseplant.migrate_down()
 
     # Verify correct SQL was executed
-    mock_execute.assert_called_once_with("DROP TABLE dev_table")
+    mock_execute.assert_called_once_with("DROP TABLE events")
     mock_mark_rolled_back.assert_called_once_with("20240101000000")
     mock_get_applied.assert_called_once()
