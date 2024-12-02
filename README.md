@@ -42,9 +42,9 @@ $ houseplant migrate:down VERSION=20241121003230
 
 ## Why Houseplant?
 
-- **Schema Tracking**: Automatically tracks and updates your database schema
-- **YAML Format**: Migrations are written in YAML format, making them easy to read and maintain
-- **Environment Support**: Houseplant supports different environments (development, test, production) with different migration configurations for each
+- **Schema Management**: Houseplant automatically tracks and manages your ClickHouse schema changes, making it easy to evolve your data model over time
+- **Developer Experience**: Write migrations in YAML format, making them easy to read, review, and maintain
+- **Environment Support**: Different configurations for development, testing, and production environments
 - **Rich CLI**: Comes with an intuitive command-line interface for all migration operations
 
 ## Installation
