@@ -303,8 +303,8 @@ production:
                 f.write("-- TABLES\n\n")
                 f.write("\n;\n\n".join(table_statements) + ";")
             if mv_statements:
-                f.write("-- MATERIALIZED VIEWS\n\n")
+                f.write("\n\n-- MATERIALIZED VIEWS\n\n")
                 f.write("\n;\n\n".join(mv_statements) + ";")
             if dict_statements:
-                f.write("-- DICTIONARIES\n\n")
+                f.write("\n\n-- DICTIONARIES\n\n")
                 f.write("\n;\n\n".join(dict_statements) + ";")
