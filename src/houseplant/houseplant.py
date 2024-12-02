@@ -280,7 +280,7 @@ production:
 
             # Then materialized views
             for mv in materialized_views:
-                if mv[0].startswith(table_name):
+                if mv[0] == table_name:
                     mv_name = mv[0]
                     create_stmt = self.db.client.execute(
                         f"SHOW CREATE VIEW {mv_name}"
@@ -289,7 +289,7 @@ production:
 
             # Finally dictionaries
             for dict in dictionaries:
-                if dict[0].startswith(table_name):
+                if dict[0] == table_name:
                     dict_name = dict[0]
                     create_stmt = self.db.client.execute(
                         f"SHOW CREATE DICTIONARY {dict_name}"
