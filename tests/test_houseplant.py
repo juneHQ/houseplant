@@ -83,7 +83,13 @@ test:
   <<: *development
 
 production:
-  <<: *development
+  up: |
+    CREATE TABLE {table} ON CLUSTER '{{cluster}}' (
+        {table_definition}
+    ) ENGINE = MergeTree()
+    {table_settings}
+  down: |
+    DROP TABLE {table}
 """
 
     migration_file.write_text(migration_content)
@@ -137,10 +143,11 @@ ORDER BY id"""
     mock_get_applied.assert_called_once()
 
 
-def test_migrate_up_with_table_settings(
+def test_migrate_up_with_development_table_settings(
     houseplant, test_migration_with_settings, mocker
 ):
     # Mock database calls
+    houseplant.env = "development"
     mock_execute = mocker.patch.object(houseplant.db, "execute_migration")
     mock_mark_applied = mocker.patch.object(houseplant.db, "mark_migration_applied")
     mock_get_applied = mocker.patch.object(
@@ -152,6 +159,33 @@ def test_migrate_up_with_table_settings(
 
     # Verify correct SQL was executed with table_definition and table_settings
     expected_sql = """CREATE TABLE settings_table (
+    id UInt32,
+name String,
+created_at DateTime
+) ENGINE = MergeTree()
+ORDER BY (id, created_at)
+PARTITION BY toYYYYMM(created_at)"""
+    mock_execute.assert_called_once_with(expected_sql)
+    mock_mark_applied.assert_called_once_with("20240101000000")
+    mock_get_applied.assert_called_once()
+
+
+def test_migrate_up_with_production_table_settings(
+    houseplant, test_migration_with_settings, mocker
+):
+    # Mock database calls
+    houseplant.env = "production"
+    mock_execute = mocker.patch.object(houseplant.db, "execute_migration")
+    mock_mark_applied = mocker.patch.object(houseplant.db, "mark_migration_applied")
+    mock_get_applied = mocker.patch.object(
+        houseplant.db, "get_applied_migrations", return_value=[]
+    )
+
+    # Run migration
+    houseplant.migrate_up()
+
+    # Verify correct SQL was executed with table_definition and table_settings
+    expected_sql = """CREATE TABLE settings_table ON CLUSTER '{cluster}' (
     id UInt32,
 name String,
 created_at DateTime
