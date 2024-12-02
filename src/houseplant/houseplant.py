@@ -282,9 +282,9 @@ production:
             for mv in materialized_views:
                 if mv[0] == table_name:
                     mv_name = mv[0]
-                    create_stmt = self.db.client.execute(
-                        f"SHOW CREATE VIEW {mv_name}"
-                    )[0][0]
+                    create_stmt = self.db.client.execute(f"SHOW CREATE VIEW {mv_name}")[
+                        0
+                    ][0]
                     mv_statements.append(create_stmt)
 
             # Finally dictionaries
