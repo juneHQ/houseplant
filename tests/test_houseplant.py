@@ -52,7 +52,7 @@ production:
 
 
 @pytest.fixture
-def test_migration_with_settings(tmp_path):
+def test_migration_with_table(tmp_path):
     # Set up test environment
     migrations_dir = tmp_path / "ch/migrations"
     migrations_dir.mkdir(parents=True)
@@ -88,6 +88,55 @@ production:
         {table_definition}
     ) ENGINE = MergeTree()
     {table_settings}
+  down: |
+    DROP TABLE {table}
+"""
+
+    migration_file.write_text(migration_content)
+    os.chdir(tmp_path)
+    return migration_content
+
+
+@pytest.fixture
+def test_migration_with_view(tmp_path):
+    # Set up test environment
+    migrations_dir = tmp_path / "ch/migrations"
+    migrations_dir.mkdir(parents=True)
+    migration_file = migrations_dir / "20240101000000_test_view.yml"
+
+    migration_content = """version: "20240101000000"
+name: test_view
+table: settings_table
+sink_table: sink_table
+
+view_definition: |
+    id UInt32,
+    name String,
+    created_at DateTime
+view_query: |
+    SELECT * FROM events
+
+development: &development
+  up: |
+    CREATE MATERIALIZED VIEW {table}
+    TO {sink_table} (
+      {view_definition}
+    )
+    AS {view_query}
+  down: |
+    DROP TABLE {table}
+
+test:
+  <<: *development
+
+production:
+  up: |
+    CREATE MATERIALIZED VIEW {table}
+    ON CLUSTER '{{cluster}}'
+    TO {sink_table} (
+      {view_definition}
+    )
+    AS {view_query}
   down: |
     DROP TABLE {table}
 """
@@ -143,8 +192,8 @@ ORDER BY id"""
     mock_get_applied.assert_called_once()
 
 
-def test_migrate_up_with_development_table_settings(
-    houseplant, test_migration_with_settings, mocker
+def test_migrate_up_with_development_table(
+    houseplant, test_migration_with_table, mocker
 ):
     # Mock database calls
     houseplant.env = "development"
@@ -170,8 +219,8 @@ PARTITION BY toYYYYMM(created_at)"""
     mock_get_applied.assert_called_once()
 
 
-def test_migrate_up_with_production_table_settings(
-    houseplant, test_migration_with_settings, mocker
+def test_migrate_up_with_production_table(
+    houseplant, test_migration_with_table, mocker
 ):
     # Mock database calls
     houseplant.env = "production"
@@ -192,6 +241,57 @@ created_at DateTime
 ) ENGINE = MergeTree()
 ORDER BY (id, created_at)
 PARTITION BY toYYYYMM(created_at)"""
+    mock_execute.assert_called_once_with(expected_sql)
+    mock_mark_applied.assert_called_once_with("20240101000000")
+    mock_get_applied.assert_called_once()
+
+
+def test_migrate_up_with_development_view(houseplant, test_migration_with_view, mocker):
+    # Mock database calls
+    houseplant.env = "development"
+    mock_execute = mocker.patch.object(houseplant.db, "execute_migration")
+    mock_mark_applied = mocker.patch.object(houseplant.db, "mark_migration_applied")
+    mock_get_applied = mocker.patch.object(
+        houseplant.db, "get_applied_migrations", return_value=[]
+    )
+
+    # Run migration
+    houseplant.migrate_up()
+
+    # Verify correct SQL was executed with view_definition and view_query
+    expected_sql = """CREATE MATERIALIZED VIEW settings_table
+TO sink_table (
+  id UInt32,
+name String,
+created_at DateTime
+)
+AS SELECT * FROM events"""
+    mock_execute.assert_called_once_with(expected_sql)
+    mock_mark_applied.assert_called_once_with("20240101000000")
+    mock_get_applied.assert_called_once()
+
+
+def test_migrate_up_with_production_view(houseplant, test_migration_with_view, mocker):
+    # Mock database calls
+    houseplant.env = "production"
+    mock_execute = mocker.patch.object(houseplant.db, "execute_migration")
+    mock_mark_applied = mocker.patch.object(houseplant.db, "mark_migration_applied")
+    mock_get_applied = mocker.patch.object(
+        houseplant.db, "get_applied_migrations", return_value=[]
+    )
+
+    # Run migration
+    houseplant.migrate_up()
+
+    # Verify correct SQL was executed with view_definition and view_query
+    expected_sql = """CREATE MATERIALIZED VIEW settings_table
+ON CLUSTER '{cluster}'
+TO sink_table (
+  id UInt32,
+name String,
+created_at DateTime
+)
+AS SELECT * FROM events"""
     mock_execute.assert_called_once_with(expected_sql)
     mock_mark_applied.assert_called_once_with("20240101000000")
     mock_get_applied.assert_called_once()

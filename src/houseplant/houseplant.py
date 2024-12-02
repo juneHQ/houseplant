@@ -122,6 +122,18 @@ class Houseplant:
                         }
                     )
 
+                sink_table = migration.get("sink_table", "").strip()
+                view_definition = migration.get("view_definition", "").strip()
+                view_query = migration.get("view_query", "").strip()
+                if sink_table and view_definition and view_query:
+                    format_args.update(
+                        {
+                            "sink_table": sink_table,
+                            "view_definition": view_definition,
+                            "view_query": view_query,
+                        }
+                    )
+
                 migration_sql = migration_sql.format(**format_args).strip()
                 if migration_sql:
                     self.db.execute_migration(migration_sql)
