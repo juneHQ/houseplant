@@ -117,14 +117,28 @@ class Houseplant:
                 # Get migration SQL based on environment
                 migration_sql = migration.get(self.env, {}).get("up", {}).strip()
 
+                table = migration.get("table", "").strip()
+
+                if not table:
+                    self.console.print(
+                        "[red]✗[/red] Migration [bold red]failed[/bold red]: "
+                        "'table' field is required in migration file"
+                    )
+                    return
+
                 table_definition = migration.get("table_definition", "").strip()
                 table_settings = migration.get("table_settings", "").strip()
 
+                format_args = {"table": table}
                 if table_definition and table_settings:
-                    migration_sql = migration_sql.format(
-                        table_definition=table_definition, table_settings=table_settings
-                    ).strip()
+                    format_args.update(
+                        {
+                            "table_definition": table_definition,
+                            "table_settings": table_settings,
+                        }
+                    )
 
+                migration_sql = migration_sql.format(**format_args).strip()
                 if migration_sql:
                     self.db.execute_migration(migration_sql)
                     self.db.mark_migration_applied(migration_version)
@@ -187,6 +201,15 @@ class Houseplant:
 
                 # Get migration SQL based on environment
                 migration_sql = migration.get(self.env, {}).get("down", {}).strip()
+                table = migration.get("table", "").strip()
+                if not table:
+                    self.console.print(
+                        "[red]✗[/red] [bold red] Migration failed[/bold red]: "
+                        "'table' field is required in migration file"
+                    )
+                    return
+                migration_sql = migration_sql.format(table=table).strip()
+
                 if migration_sql:
                     self.db.execute_migration(migration_sql)
                     self.db.mark_migration_rolled_back(migration_version)
@@ -233,8 +256,45 @@ production:
     def update_schema(self):
         """Update the schema file with the current database schema."""
 
-        schema = self.db.get_database_schema()
+        # Get all applied migrations in order
+        applied_migrations = self.db.get_applied_migrations()
+        latest_version = applied_migrations[-1][0] if applied_migrations else "0"
 
+        # Get all database objects
+        tables = self.db.get_database_tables()
+        materialized_views = self.db.get_database_materialized_views()
+        dictionaries = self.db.get_database_dictionaries()
+
+        # Build schema in migration order
+        schema_statements = []
+
+        for migration_version in applied_migrations:
+            # Check tables first
+            for table in tables:
+                table_name = table[0]
+                create_stmt = self.db.client.execute(f"SHOW CREATE TABLE {table_name}")[
+                    0
+                ][0]
+                schema_statements.append(create_stmt)
+
+            # Then materialized views
+            for mv in materialized_views:
+                mv_name = mv[0]
+                create_stmt = self.db.client.execute(
+                    f"SHOW CREATE MATERIALIZED VIEW {mv_name}"
+                )[0][0]
+                schema_statements.append(create_stmt)
+
+            # Finally dictionaries
+            for dict in dictionaries:
+                dict_name = dict[0]
+                create_stmt = self.db.client.execute(
+                    f"SHOW CREATE DICTIONARY {dict_name}"
+                )[0][0]
+                schema_statements.append(create_stmt)
+
+        # Write schema file
         with open("ch/schema.sql", "w") as f:
-            f.write(f"-- version: {schema['version']}\n\n")
-            f.write("\n;\n\n".join(schema["tables"]) + ";")
+            f.write(f"-- version: {latest_version}\n\n")
+            if schema_statements:
+                f.write("\n;\n\n".join(schema_statements) + ";")

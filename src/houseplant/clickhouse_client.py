@@ -33,19 +33,46 @@ class ClickHouseClient:
         """)
 
     def get_database_schema(self):
-        """Get the database schema organized by table."""
-        tables = self.get_database_tables()
+        """Get the database schema organized by object type and sorted by migration date."""
+        # Get all applied migrations in order
+        applied_migrations = self.get_applied_migrations()
+        latest_version = applied_migrations[-1][0] if applied_migrations else "0"
 
-        latest_migration = self.get_latest_migration()
-
+        # Initialize schema structure
         schema = {
-            "version": latest_migration or "0",
+            "version": latest_version,
             "tables": [],
+            "materialized_views": [],
+            "dictionaries": [],
         }
-        for row in tables:
-            table = row[0]
-            result = self.client.execute(f"SHOW CREATE TABLE {table}")
-            schema["tables"].append(result[0][0])
+
+        # Get all database objects
+        tables = self.get_database_tables()
+        materialized_views = self.get_database_materialized_views()
+        dictionaries = self.get_database_dictionaries()
+
+        for table in tables:
+            table_name = table[0]
+            create_stmt = self.client.execute(f"SHOW CREATE TABLE {table_name}")[0][0]
+            schema["tables"].append(create_stmt)
+
+        for materialized_view in materialized_views:
+            materialized_view_name = materialized_view[0]
+            create_stmt = self.client.execute(
+                f"SHOW CREATE MATERIALIZED VIEW {materialized_view_name}"
+            )[0][0]
+            schema["materialized_views"].append(create_stmt)
+
+        for dictionary in dictionaries:
+            dictionary_name = dictionary[0]
+            create_stmt = self.client.execute(
+                f"SHOW CREATE DICTIONARY {dictionary_name}"
+            )[0][0]
+            schema["dictionaries"].append(create_stmt)
+
+        # Sort each category by migration date
+        for category in ["tables", "materialized_views", "dictionaries"]:
+            schema[category].sort()
 
         return schema
 
@@ -74,7 +101,31 @@ class ClickHouseClient:
                 name
             FROM system.tables
             WHERE database = currentDatabase()
-                AND engine NOT IN ('MaterializedView', 'Dictionary')
+                AND position('MergeTree' IN engine) > 0
+                AND name != 'schema_migrations'
+            ORDER BY name
+        """)
+
+    def get_database_materialized_views(self):
+        """Get the database materialized views."""
+        return self.client.execute("""
+            SELECT
+                name
+            FROM system.tables
+            WHERE database = currentDatabase()
+                AND engine = 'MaterializedView'
+                AND name != 'schema_migrations'
+            ORDER BY name
+        """)
+
+    def get_database_dictionaries(self):
+        """Get the database dictionaries."""
+        return self.client.execute("""
+            SELECT
+                name
+            FROM system.tables
+            WHERE database = currentDatabase()
+                AND engine = 'Dictionary'
                 AND name != 'schema_migrations'
             ORDER BY name
         """)
