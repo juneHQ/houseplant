@@ -283,7 +283,7 @@ production:
                 if mv[0].startswith(table_name):
                     mv_name = mv[0]
                     create_stmt = self.db.client.execute(
-                        f"SHOW CREATE MATERIALIZED VIEW {mv_name}"
+                        f"SHOW CREATE VIEW {mv_name}"
                     )[0][0]
                     mv_statements.append(create_stmt)
 
