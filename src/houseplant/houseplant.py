@@ -217,6 +217,7 @@ class Houseplant:
             with open(migration_file, "w") as f:
                 f.write(f"""version: "{timestamp}"
 name: {migration_name}
+table:
 
 development: &development
   up: |
