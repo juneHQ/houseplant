@@ -14,6 +14,7 @@ class Houseplant:
     def __init__(self):
         self.console = Console()
         self.db = ClickHouseClient()
+        self.env = os.getenv("RAILS_ENV", "development")
 
     def init(self):
         """Initialize a new houseplant project."""
@@ -113,8 +114,10 @@ class Houseplant:
                 with open(os.path.join(migrations_dir, migration_file), "r") as f:
                     migration = yaml.safe_load(f)
 
-                if migration.get("up", {}).get("sql"):
-                    self.db.execute_migration(migration["up"]["sql"])
+                # Get migration SQL based on environment
+                migration_sql = migration.get(self.env, {}).get("up", {}).strip()
+                if migration_sql:
+                    self.db.execute_migration(migration_sql)
                     self.db.mark_migration_applied(migration_version)
                     self.console.print(
                         f"[green]✓[/green] Applied migration {migration_file}"
@@ -173,8 +176,10 @@ class Houseplant:
                 with open(os.path.join(migrations_dir, migration_file), "r") as f:
                     migration = yaml.safe_load(f)
 
-                if migration["down"]["sql"]:
-                    self.db.execute_migration(migration["down"]["sql"])
+                # Get migration SQL based on environment
+                migration_sql = migration.get(self.env, {}).get("down", {}).strip()
+                if migration_sql:
+                    self.db.execute_migration(migration_sql)
                     self.db.mark_migration_rolled_back(migration_version)
                     self.update_schema()
                     self.console.print(
@@ -201,11 +206,17 @@ class Houseplant:
             with open(migration_file, "w") as f:
                 f.write(f"""version: "{timestamp}"
 name: {migration_name}
-up:
-  sql: ""
 
-down:
-  sql: ""
+development: &development
+  up: |
+  down: |
+
+test:
+  <<: *development
+
+production:
+  up: |
+  down: |
 """)
 
             self.console.print(f"✨ Generated migration: {migration_file}")
