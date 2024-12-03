@@ -55,6 +55,16 @@ You can install Houseplant using pip:
 $ pip install houseplant
 </pre>
 
+## Configuration
+
+Houseplant uses the following environment variables to connect to your ClickHouse instance:
+
+- `CLICKHOUSE_HOST`: Host address of your ClickHouse server (default: "localhost")
+- `CLICKHOUSE_PORT`: Port number for ClickHouse (default: 9000)
+- `CLICKHOUSE_DB`: Database name (default: "development")
+- `CLICKHOUSE_USER`: Username for authentication (default: "default")
+- `CLICKHOUSE_PASSWORD`: Password for authentication (default: "")
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
