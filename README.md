@@ -59,6 +59,7 @@ $ pip install houseplant
 
 Houseplant uses the following environment variables to connect to your ClickHouse instance:
 
+- `HOUSEPLANT_ENV`: The current environment
 - `CLICKHOUSE_HOST`: Host address of your ClickHouse server (default: "localhost")
 - `CLICKHOUSE_PORT`: Port number for ClickHouse (default: 9000)
 - `CLICKHOUSE_DB`: Database name (default: "development")

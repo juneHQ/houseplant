@@ -15,7 +15,7 @@ class Houseplant:
     def __init__(self):
         self.console = Console()
         self.db = ClickHouseClient()
-        self.env = os.getenv("RAILS_ENV", "development")
+        self.env = os.getenv("HOUSEPLANT_ENV", "development")
 
     def init(self):
         """Initialize a new houseplant project."""
