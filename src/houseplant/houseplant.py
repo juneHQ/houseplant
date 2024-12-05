@@ -260,6 +260,9 @@ production:
         materialized_views = self.db.get_database_materialized_views()
         dictionaries = self.db.get_database_dictionaries()
 
+        # Track processed tables to ensure first migration takes precedence
+        processed_tables = set()
+
         # Group statements by type
         table_statements = []
         mv_statements = []
@@ -282,6 +285,10 @@ production:
             if not table_name:
                 continue
 
+            # Skip if we've already processed this table
+            if table_name in processed_tables:
+                continue
+
             # Check tables first
             for table in tables:
                 if table[0] == table_name:
@@ -289,6 +296,7 @@ production:
                         f"SHOW CREATE TABLE {table_name}"
                     )[0][0]
                     table_statements.append(create_stmt)
+                    processed_tables.add(table_name)
 
             # Then materialized views
             for mv in materialized_views:
@@ -298,6 +306,7 @@ production:
                         0
                     ][0]
                     mv_statements.append(create_stmt)
+                    processed_tables.add(table_name)
 
             # Finally dictionaries
             for dict in dictionaries:
@@ -307,6 +316,7 @@ production:
                         f"SHOW CREATE DICTIONARY {dict_name}"
                     )[0][0]
                     dict_statements.append(create_stmt)
+                    processed_tables.add(table_name)
 
         # Write schema file
         with open("ch/schema.sql", "w") as f:
