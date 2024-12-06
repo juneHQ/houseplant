@@ -44,7 +44,11 @@ class ClickHouseClient:
         """
 
         cluster_clause = "ON CLUSTER '{cluster}'" if self.cluster is not None else ""
-        engine = "ReplicatedReplacingMergeTree(created_at)" if self.cluster is not None else "ReplacingMergeTree(created_at)"
+        engine = (
+            "ReplicatedReplacingMergeTree(created_at)"
+            if self.cluster is not None
+            else "ReplacingMergeTree(created_at)"
+        )
 
         return table_definition.format(cluster=cluster_clause, engine=engine)
 
