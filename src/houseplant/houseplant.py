@@ -14,8 +14,20 @@ from .utils import MIGRATIONS_DIR, get_migration_files
 class Houseplant:
     def __init__(self):
         self.console = Console()
+        self._check_migrations_dir()
+
         self.db = ClickHouseClient()
         self.env = os.getenv("HOUSEPLANT_ENV", "development")
+
+    def _check_migrations_dir(self):
+        """Check if migrations directory exists and raise formatted error if not."""
+        if not os.path.exists(MIGRATIONS_DIR):
+            self.console.print("[red]Error:[/red] Migrations directory not found")
+            self.console.print(
+                "\nPlease run [bold]houseplant init[/bold] to create a new project "
+                "or ensure you're in the correct directory."
+            )
+            raise SystemExit(1)
 
     def init(self):
         """Initialize a new houseplant project."""
@@ -219,7 +231,6 @@ class Houseplant:
 
     def generate(self, name: str):
         """Generate a new migration."""
-
         with self.console.status("[bold green]Generating migration..."):
             timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
 

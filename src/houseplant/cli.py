@@ -6,8 +6,7 @@ from typing import Optional
 import typer
 from rich.console import Console
 
-from houseplant import __version__, Houseplant
-
+from houseplant import Houseplant, __version__
 
 app = typer.Typer(
     add_completion=False,
