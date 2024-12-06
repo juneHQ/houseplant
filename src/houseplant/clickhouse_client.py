@@ -42,24 +42,30 @@ class ClickHouseDatabaseNotFoundError(RichFormattedError, Exception):
 
 class ClickHouseClient:
     def __init__(self, host=None, database=None, port=None):
+        self.host = host or os.getenv("CLICKHOUSE_HOST", "localhost")
+        if ":" in self.host:
+            self.host, self.port = self.host.split(":")
+
+        self.port = port or os.getenv("CLICKHOUSE_PORT", 9000)
+        self.database = database or os.getenv("CLICKHOUSE_DB", "development")
+
+        self.client = Client(
+            host=self.host,
+            port=self.port,
+            database=self.database,
+            user=os.getenv("CLICKHOUSE_USER", "default"),
+            password=os.getenv("CLICKHOUSE_PASSWORD", ""),
+        )
+
+        self._cluster = None
+
+    def _check_clickhouse_connection(self):
+        """Check connection to ClickHouse and raise appropriate errors."""
         try:
-            host = host or os.getenv("CLICKHOUSE_HOST", "localhost")
-            if ":" in host:
-                host, port = host.split(":")
-
-            database = database or os.getenv("CLICKHOUSE_DB", "development")
-            port = port or os.getenv("CLICKHOUSE_PORT", 9000)
-
-            self.client = Client(
-                host=host,
-                port=port,
-                database=database,
-                user=os.getenv("CLICKHOUSE_USER", "default"),
-                password=os.getenv("CLICKHOUSE_PASSWORD", ""),
-            )
+            self.client.execute("SELECT 1")
         except NetworkError:
             raise ClickHouseConnectionError(
-                f"Could not connect to database at {host}:{port}"
+                f"Could not connect to database at {self.host}:{self.port}"
             )
         except ServerException as e:
             if "Authentication failed" in str(e):
@@ -67,11 +73,9 @@ class ClickHouseClient:
                     f"Authentication failed for user {os.getenv('CLICKHOUSE_USER', 'default')}"
                 )
             elif "Database" in str(e) and "does not exist" in str(e):
-                raise ClickHouseDatabaseNotFoundError(database)
+                raise ClickHouseDatabaseNotFoundError(self.database)
             else:
                 raise e
-
-        self._cluster = None
 
     @property
     def cluster(self):
