@@ -59,6 +59,11 @@ def test_port_precedence(monkeypatch):
     client = ClickHouseClient(host="localhost")
     assert client.port == 8000
 
+    # Secure port should be used if secure is true
+    monkeypatch.setenv("CLICKHOUSE_SECURE", "true")
+    client = ClickHouseClient(host="localhost:7000", port=6000)
+    assert client.port == 9440
+
 
 def test_connection_error(monkeypatch):
     """Test connection error handling."""
