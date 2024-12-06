@@ -18,19 +18,38 @@ class ClickHouseClient:
             user=os.getenv("CLICKHOUSE_USER", "default"),
             password=os.getenv("CLICKHOUSE_PASSWORD", ""),
         )
+        self._cluster = None
 
-    def init_migrations_table(self):
+    @property
+    def cluster(self):
+        if self._cluster is None:
+            self._cluster = os.getenv("CLICKHOUSE_CLUSTER")
+        return self._cluster
+
+    @cluster.setter
+    def cluster(self, value):
+        self._cluster = value
+
+    def init_migrations_table_query(self):
         """Initialize the schema migrations table."""
-        self.client.execute("""
-            CREATE TABLE IF NOT EXISTS schema_migrations (
+        table_definition = """
+            CREATE TABLE IF NOT EXISTS schema_migrations {cluster} (
                 version LowCardinality(String),
                 active UInt8 NOT NULL DEFAULT 1,
                 created_at DateTime64(6, 'UTC') NOT NULL DEFAULT now64()
             )
-            ENGINE = ReplacingMergeTree(created_at)
+            ENGINE = {engine}
             PRIMARY KEY(version)
             ORDER BY (version)
-        """)
+        """
+
+        cluster_clause = "ON CLUSTER '{cluster}'" if self.cluster is not None else ""
+        engine = "ReplicatedReplacingMergeTree(created_at)" if self.cluster is not None else "ReplacingMergeTree(created_at)"
+
+        return table_definition.format(cluster=cluster_clause, engine=engine)
+
+    def init_migrations_table(self):
+        self.client.execute(self.init_migrations_table_query())
 
     def get_database_schema(self):
         """Get the database schema organized by object type and sorted by migration date."""

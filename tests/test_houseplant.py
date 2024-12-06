@@ -1,7 +1,6 @@
 import os
 
 import pytest
-import yaml
 
 from houseplant.houseplant import Houseplant
 

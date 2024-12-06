@@ -27,6 +27,24 @@ def test_migrations_table_structure(migrations_table):
     assert "DateTime64" in columns["created_at"]["type"]
 
 
+def test_migrations_table_structure_with_cluster(ch_client, monkeypatch):
+    """Test that migrations table is created with correct structure when using cluster."""
+    monkeypatch.setenv("CLICKHOUSE_CLUSTER", "test_cluster")
+
+    create_statement = ch_client.init_migrations_table_query()
+
+    assert "ON CLUSTER '{cluster}'" in create_statement
+    assert "ENGINE = ReplicatedReplacingMergeTree" in create_statement
+
+
+def test_migrations_table_structure_without_cluster(ch_client):
+    """Test that migrations table is created with correct structure when using cluster."""
+    create_statement = ch_client.init_migrations_table_query()
+
+    assert "ON CLUSTER '{cluster}'" not in create_statement
+    assert "ENGINE = ReplacingMergeTree" in create_statement
+
+
 @pytest.mark.parametrize("test_versions", [["20240101000000", "20240102000000"]])
 def test_get_applied_migrations(migrations_table, test_versions):
     """Test retrieving applied migrations."""
