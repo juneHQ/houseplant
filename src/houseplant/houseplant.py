@@ -14,8 +14,6 @@ from .utils import MIGRATIONS_DIR, get_migration_files
 class Houseplant:
     def __init__(self):
         self.console = Console()
-        self._check_migrations_dir()
-
         self.db = ClickHouseClient()
         self.env = os.getenv("HOUSEPLANT_ENV", "development")
 
@@ -41,6 +39,7 @@ class Houseplant:
 
     def migrate_status(self):
         """Show status of database migrations."""
+        self._check_migrations_dir()
         # Get applied migrations from database
         applied_migrations = {
             version[0] for version in self.db.get_applied_migrations()
@@ -73,6 +72,7 @@ class Houseplant:
 
     def migrate_up(self, version: str | None = None):
         """Run migrations up to specified version."""
+        self._check_migrations_dir()
         # Remove VERSION= prefix if present
         if version and version.startswith("VERSION="):
             version = version.replace("VERSION=", "")
@@ -164,6 +164,7 @@ class Houseplant:
 
     def migrate_down(self, version: str | None = None):
         """Roll back migrations to specified version."""
+        self._check_migrations_dir()
         # Remove VERSION= prefix if present
         if version and version.startswith("VERSION="):
             version = version.replace("VERSION=", "")
@@ -260,6 +261,7 @@ production:
 
     def db_schema_load(self):
         """Load schema migrations from migration files without applying them."""
+        self._check_migrations_dir()
         migration_files = get_migration_files()
         if not migration_files:
             self.console.print("[yellow]No migrations found.[/yellow]")

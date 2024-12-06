@@ -25,19 +25,19 @@ class ClickHouseConnectionError(RichFormattedError, Exception):
         super().__init__(message, error_type="Connection Error")
 
 
+class ClickHouseAuthenticationError(RichFormattedError, Exception):
+    """Raised when ClickHouse authentication fails."""
+
+    def __init__(self, message):
+        super().__init__(message, error_type="Authentication Error")
+
+
 class ClickHouseDatabaseNotFoundError(RichFormattedError, Exception):
     """Raised when ClickHouse database does not exist."""
 
     def __init__(self, database):
         message = f"Database '{database}' does not exist"
         super().__init__(message, error_type="Database Error")
-
-
-class ClickHouseAuthenticationError(RichFormattedError, Exception):
-    """Raised when ClickHouse authentication fails."""
-
-    def __init__(self, message):
-        super().__init__(message, error_type="Authentication Error")
 
 
 class ClickHouseClient:
@@ -59,19 +59,19 @@ class ClickHouseClient:
             )
             # Test connection and database existence
             self.client.execute("SELECT 1")
-        except ServerException as e:
-            if "Database" in str(e) and "does not exist" in str(e):
-                raise ClickHouseDatabaseNotFoundError(database)
-            elif "Authentication failed" in str(e):
-                raise ClickHouseAuthenticationError(
-                    f"Authentication failed for user {os.getenv('CLICKHOUSE_USER', 'default')}"
-                )
-            else:
-                raise e
         except NetworkError:
             raise ClickHouseConnectionError(
                 f"Could not connect to database at {host}:{port}"
             )
+        except ServerException as e:
+            if "Authentication failed" in str(e):
+                raise ClickHouseAuthenticationError(
+                    f"Authentication failed for user {os.getenv('CLICKHOUSE_USER', 'default')}"
+                )
+            elif "Database" in str(e) and "does not exist" in str(e):
+                raise ClickHouseDatabaseNotFoundError(database)
+            else:
+                raise e
 
         self._cluster = None
 
