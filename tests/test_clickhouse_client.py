@@ -1,9 +1,11 @@
 import pytest
 from clickhouse_driver.errors import NetworkError, ServerException
 
-from houseplant.clickhouse_client import (ClickHouseAuthenticationError,
-                                          ClickHouseConnectionError,
-                                          ClickHouseDatabaseNotFoundError)
+from houseplant.clickhouse_client import (
+    ClickHouseAuthenticationError,
+    ClickHouseConnectionError,
+    ClickHouseDatabaseNotFoundError,
+)
 
 
 @pytest.fixture
