@@ -1,4 +1,11 @@
 import pytest
+from clickhouse_driver.errors import NetworkError, ServerException
+
+from houseplant.clickhouse_client import (
+    ClickHouseAuthenticationError,
+    ClickHouseConnectionError,
+    ClickHouseDatabaseNotFoundError,
+)
 
 
 @pytest.fixture
@@ -6,6 +13,62 @@ def migrations_table(ch_client):
     """Fixture to initialize migrations table."""
     ch_client.init_migrations_table()
     return ch_client
+
+
+def test_connection_error(monkeypatch):
+    """Test connection error handling."""
+    monkeypatch.setenv("CLICKHOUSE_HOST", "invalid_host")
+
+    with pytest.raises(ClickHouseConnectionError) as exc_info:
+        from houseplant.clickhouse_client import ClickHouseClient
+
+        client = ClickHouseClient()
+
+        def mock_execute(*args, **kwargs):
+            raise NetworkError("Connection refused")
+
+        monkeypatch.setattr(client.client, "execute", mock_execute)
+        client._check_clickhouse_connection()
+
+    assert "Could not connect to database at invalid_host" in str(exc_info.value)
+
+
+def test_authentication_error(monkeypatch):
+    """Test authentication error handling."""
+    monkeypatch.setenv("CLICKHOUSE_USER", "invalid_user")
+
+    with pytest.raises(ClickHouseAuthenticationError) as exc_info:
+        from houseplant.clickhouse_client import ClickHouseClient
+
+        client = ClickHouseClient()
+
+        def mock_execute(*args, **kwargs):
+            raise ServerException("Authentication failed")
+
+        monkeypatch.setattr(client.client, "execute", mock_execute)
+        client._check_clickhouse_connection()
+
+    assert "Authentication failed for user invalid_user" in str(exc_info.value)
+
+
+def test_database_not_found_error(monkeypatch):
+    """Test database not found error handling."""
+    monkeypatch.setenv("CLICKHOUSE_DB", "nonexistent_db")
+
+    with pytest.raises(ClickHouseDatabaseNotFoundError) as exc_info:
+        from houseplant.clickhouse_client import ClickHouseClient
+
+        client = ClickHouseClient()
+
+        def mock_execute(*args, **kwargs):
+            raise ServerException(
+                "Code: None. Database 'nonexistent_db' does not exist"
+            )
+
+        monkeypatch.setattr(client.client, "execute", mock_execute)
+        client._check_clickhouse_connection()
+
+    assert "Database 'nonexistent_db' does not exist" in str(exc_info.value)
 
 
 def test_migrations_table_structure(migrations_table):

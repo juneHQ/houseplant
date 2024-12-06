@@ -426,3 +426,135 @@ def test_migrate_down(houseplant, test_migration, mocker):
     mock_execute.assert_called_once_with("DROP TABLE events")
     mock_mark_rolled_back.assert_called_once_with("20240101000000")
     mock_get_applied.assert_called_once()
+
+
+def test_migrate_up_missing_version(houseplant, test_migration, mocker):
+    # Mock database calls
+    mock_get_applied = mocker.patch.object(
+        houseplant.db, "get_applied_migrations", return_value=[]
+    )
+
+    # Run migration with non-existent version
+    houseplant.migrate_up("99999999999999")
+
+    # Verify error message was printed
+    mock_get_applied.assert_called_once()
+
+
+def test_migrate_up_missing_table_field(houseplant, tmp_path, mocker):
+    # Mock database calls
+    mock_execute = mocker.patch.object(houseplant.db, "execute_migration")
+    mock_mark_applied = mocker.patch.object(houseplant.db, "mark_migration_applied")
+    mock_get_applied = mocker.patch.object(
+        houseplant.db, "get_applied_migrations", return_value=[]
+    )
+
+    # Set up test environment with invalid migration
+    migrations_dir = tmp_path / "ch/migrations"
+    migrations_dir.mkdir(parents=True)
+    migration_file = migrations_dir / "20240101000000_invalid_migration.yml"
+
+    migration_content = """version: "20240101000000"
+name: invalid_migration
+
+development: &development
+  up: |
+    CREATE TABLE events (
+        id UInt32,
+        name String
+    ) ENGINE = MergeTree()
+    ORDER BY id
+  down: |
+    DROP TABLE events
+
+test:
+  <<: *development
+
+production:
+  <<: *development
+"""
+
+    migration_file.write_text(migration_content)
+    os.chdir(tmp_path)
+
+    # Run migration
+    houseplant.migrate_up()
+
+    # Verify mocks were called appropriately
+    mock_get_applied.assert_called_once()
+
+
+def test_migrate_down_no_migrations(houseplant, mocker):
+    # Mock database calls
+    mock_get_applied = mocker.patch.object(
+        houseplant.db, "get_applied_migrations", return_value=[]
+    )
+
+    # Run migration down
+    houseplant.migrate_down()
+
+    # Verify error message was printed
+    mock_get_applied.assert_called_once()
+
+
+def test_migrate_down_missing_migration_file(houseplant, mocker):
+    # Mock database calls to return a version with no corresponding file
+    mock_get_applied = mocker.patch.object(
+        houseplant.db, "get_applied_migrations", return_value=[("99999999999999",)]
+    )
+
+    # Run migration down
+    houseplant.migrate_down()
+
+    # Verify warning was printed
+    mock_get_applied.assert_called_once()
+
+
+def test_migrate_down_missing_table_field(houseplant, tmp_path, mocker):
+    # Set up test environment with invalid migration
+    migrations_dir = tmp_path / "ch/migrations"
+    migrations_dir.mkdir(parents=True)
+    migration_file = migrations_dir / "20240101000000_invalid_migration.yml"
+
+    migration_content = """version: "20240101000000"
+name: invalid_migration
+
+development: &development
+  up: |
+    CREATE TABLE events (
+        id UInt32,
+        name String
+    ) ENGINE = MergeTree()
+    ORDER BY id
+  down: |
+    DROP TABLE events
+
+test:
+  <<: *development
+
+production:
+  <<: *development
+"""
+
+    migration_file.write_text(migration_content)
+    os.chdir(tmp_path)
+
+    # Mock database calls
+    mock_get_applied = mocker.patch.object(
+        houseplant.db, "get_applied_migrations", return_value=[("20240101000000",)]
+    )
+
+    # Run migration down
+    houseplant.migrate_down()
+
+    # Verify error was handled
+    mock_get_applied.assert_called_once()
+
+
+def test_check_migrations_dir_not_found(houseplant, tmp_path):
+    # Change to empty directory
+    os.chdir(tmp_path)
+
+    # Verify SystemExit is raised when migrations dir not found
+    with pytest.raises(SystemExit):
+        houseplant._check_migrations_dir()

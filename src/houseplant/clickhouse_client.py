@@ -1,24 +1,81 @@
 """ClickHouse database operations module."""
 
 import os
+import sys
 
 from clickhouse_driver import Client
+from clickhouse_driver.errors import NetworkError, ServerException
+from rich.console import Console
+
+
+class RichFormattedError:
+    """Mixin for exceptions that use Rich formatting."""
+
+    def __init__(self, message, error_type="Error"):
+        super().__init__(message)
+        self.message = message
+        console = Console(stderr=True)
+        console.print(f"[red bold]ClickHouse {error_type}:[/] {message}")
+
+
+class ClickHouseConnectionError(RichFormattedError, Exception):
+    """Raised when ClickHouse connection fails."""
+
+    def __init__(self, message):
+        super().__init__(message, error_type="Connection Error")
+
+
+class ClickHouseAuthenticationError(RichFormattedError, Exception):
+    """Raised when ClickHouse authentication fails."""
+
+    def __init__(self, message):
+        super().__init__(message, error_type="Authentication Error")
+
+
+class ClickHouseDatabaseNotFoundError(RichFormattedError, Exception):
+    """Raised when ClickHouse database does not exist."""
+
+    def __init__(self, database):
+        message = f"Database '{database}' does not exist"
+        super().__init__(message, error_type="Database Error")
 
 
 class ClickHouseClient:
     def __init__(self, host=None, database=None, port=None):
-        host = host or os.getenv("CLICKHOUSE_HOST", "localhost")
-        if ":" in host:
-            host, port = host.split(":")
+        self.host = host or os.getenv("CLICKHOUSE_HOST", "localhost")
+        if ":" in self.host:
+            self.host, self.port = self.host.split(":")
+
+        self.port = port or os.getenv("CLICKHOUSE_PORT", 9000)
+        self.database = database or os.getenv("CLICKHOUSE_DB", "development")
 
         self.client = Client(
-            host=host,
-            port=port or os.getenv("CLICKHOUSE_PORT", 9000),
-            database=database or os.getenv("CLICKHOUSE_DB", "development"),
+            host=self.host,
+            port=self.port,
+            database=self.database,
             user=os.getenv("CLICKHOUSE_USER", "default"),
             password=os.getenv("CLICKHOUSE_PASSWORD", ""),
         )
+
         self._cluster = None
+
+    def _check_clickhouse_connection(self):
+        """Check connection to ClickHouse and raise appropriate errors."""
+        try:
+            self.client.execute("SELECT 1")
+        except NetworkError:
+            raise ClickHouseConnectionError(
+                f"Could not connect to database at {self.host}:{self.port}"
+            )
+        except ServerException as e:
+            if "Authentication failed" in str(e):
+                raise ClickHouseAuthenticationError(
+                    f"Authentication failed for user {os.getenv('CLICKHOUSE_USER', 'default')}"
+                )
+            elif "Database" in str(e) and "does not exist" in str(e):
+                raise ClickHouseDatabaseNotFoundError(self.database)
+            else:
+                raise e
 
     @property
     def cluster(self):
