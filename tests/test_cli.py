@@ -3,7 +3,7 @@ from typing import Generator
 import pytest
 from typer.testing import CliRunner
 
-from houseplant import Houseplant
+from houseplant import Houseplant, __version__
 from houseplant.cli import app
 
 runner = CliRunner()
@@ -16,6 +16,13 @@ def mock_houseplant(mocker) -> Generator[None, None, None]:
     mock_instance = mocker.Mock(spec=Houseplant)
     mock.return_value = mock_instance
     yield mock_instance
+
+
+def test_version_flag():
+    """Test the version flag."""
+    result = runner.invoke(app, ["--version"])
+    assert result.exit_code == 0
+    assert f"houseplant version {__version__}" in result.stdout
 
 
 def test_init_command(mock_houseplant):
