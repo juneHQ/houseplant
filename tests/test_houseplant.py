@@ -146,6 +146,65 @@ production:
     return migration_content
 
 
+@pytest.fixture
+def duplicate_migrations(tmp_path):
+    # Set up test environment
+    migrations_dir = tmp_path / "ch/migrations"
+    migrations_dir.mkdir(parents=True)
+
+    # Create two migrations that modify the same table
+    migration1 = migrations_dir / "20240101000000_first_migration.yml"
+    migration2 = migrations_dir / "20240102000000_second_migration.yml"
+
+    migration1_content = """version: "{version}"
+name: {name}
+table: events
+
+development: &development
+  up: |
+    CREATE TABLE events (
+        id UInt32,
+        name String
+    ) ENGINE = MergeTree()
+    ORDER BY id
+  down: |
+    DROP TABLE events
+
+test:
+  <<: *development
+
+production:
+  <<: *development
+"""
+
+    migration2_content = """version: "{version}"
+name: {name}
+table: events
+
+development: &development
+  up: |
+    ALTER TABLE events ADD COLUMN description String
+  down: |
+    ALTER TABLE events DROP COLUMN description
+
+test:
+  <<: *development
+
+production:
+  <<: *development
+"""
+
+    migration1.write_text(
+        migration1_content.format(version="20240101000000", name="first_migration")
+    )
+    migration2.write_text(
+        migration2_content.format(version="20240102000000", name="second_migration")
+    )
+
+    os.chdir(tmp_path)
+    return ("20240101000000", "20240102000000")
+
+
 def test_migrate_up_development(houseplant, test_migration, mocker):
     # Mock environment and database calls
     houseplant.env = "development"
@@ -295,6 +354,48 @@ AS SELECT * FROM events"""
     mock_execute.assert_called_once_with(expected_sql)
     mock_mark_applied.assert_called_once_with("20240101000000")
     mock_get_applied.assert_called_once()
+
+
+def test_update_schema_no_duplicates(houseplant, duplicate_migrations, mocker):
+    versions = duplicate_migrations
+
+    # Mock database calls
+    mocker.patch.object(
+        houseplant.db,
+        "get_applied_migrations",
+        return_value=[(versions[0],), (versions[1],)],
+    )
+    mocker.patch.object(
+        houseplant.db, "get_database_tables", return_value=[("events",)]
+    )
+    mocker.patch.object(
+        houseplant.db, "get_database_materialized_views", return_value=[]
+    )
+    mocker.patch.object(houseplant.db, "get_database_dictionaries", return_value=[])
+
+    # Mock the SHOW CREATE TABLE call
+    mocker.patch.object(
+        houseplant.db.client,
+        "execute",
+        return_value=[
+            [
+                "CREATE TABLE events (id UInt32, name String) ENGINE = MergeTree() ORDER BY id"
+            ]
+        ],
+    )
+
+    # Update schema
+    houseplant.update_schema()
+
+    # Read the generated schema file
+    with open("ch/schema.sql", "r") as f:
+        schema_content = f.read()
+
+    # Verify the table appears only once in the schema
+    table_count = schema_content.count("CREATE TABLE events")
+    assert (
+        table_count == 1
+    ), f"Table 'events' appears {table_count} times in schema, expected 1"
 
 
 @pytest.mark.skip
