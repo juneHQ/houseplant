@@ -2,6 +2,11 @@
 History
 =======
 
+0.2.1 (2024-12-06)
+------------------
+
+* Add `CLICKHOUSE_SECURE` environment variable.
+
 0.2.0 (2024-12-06)
 ------------------
 

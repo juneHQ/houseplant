@@ -15,6 +15,51 @@ def migrations_table(ch_client):
     return ch_client
 
 
+def test_port_parsing_from_host():
+    """Test port parsing from host string."""
+    from houseplant.clickhouse_client import ClickHouseClient
+
+    client = ClickHouseClient(host="localhost:1234")
+    assert client.host == "localhost"
+    assert client.port == 1234
+
+
+def test_default_port(monkeypatch):
+    """Test default port selection."""
+    from houseplant.clickhouse_client import ClickHouseClient
+
+    # Test default non-secure port
+    client = ClickHouseClient()
+    assert client.port == 9000
+
+    # Test default secure port
+    monkeypatch.setenv("CLICKHOUSE_SECURE", "true")
+    client = ClickHouseClient()
+    assert client.port == 9440
+
+
+def test_port_precedence(monkeypatch):
+    """Test port parameter precedence."""
+    from houseplant.clickhouse_client import ClickHouseClient
+
+    # Host:port should override port parameter and env var
+    monkeypatch.setenv("CLICKHOUSE_PORT", "8000")
+    client = ClickHouseClient(host="localhost:7000", port=6000)
+    assert client.port == 7000
+
+    # Host:port should override env var
+    client = ClickHouseClient(host="localhost:7000")
+    assert client.port == 7000
+
+    # Port parameter should override env var
+    client = ClickHouseClient(host="localhost", port=7000)
+    assert client.port == 7000
+
+    # Env var should be used if no other port specified
+    client = ClickHouseClient(host="localhost")
+    assert client.port == 8000
+
+
 def test_connection_error(monkeypatch):
     """Test connection error handling."""
     monkeypatch.setenv("CLICKHOUSE_HOST", "invalid_host")
