@@ -41,20 +41,35 @@ class ClickHouseDatabaseNotFoundError(RichFormattedError, Exception):
 
 
 class ClickHouseClient:
-    def __init__(self, host=None, database=None, port=None):
+    def __init__(
+        self, host=None, port=None, database=None, user=None, password=None, secure=None
+    ):
         self.host = host or os.getenv("CLICKHOUSE_HOST", "localhost")
+        # Parse port from host:port string if present, otherwise use port parameter or default
         if ":" in self.host:
-            self.host, self.port = self.host.split(":")
+            self.host, port_str = self.host.split(":")
+            self.port = int(port_str)
+        else:
+            self.port = int(port or os.getenv("CLICKHOUSE_PORT", 9000))
 
-        self.port = port or os.getenv("CLICKHOUSE_PORT", 9000)
         self.database = database or os.getenv("CLICKHOUSE_DB", "development")
+
+        self.user = user or os.getenv("CLICKHOUSE_USER", "default")
+        self.password = password or os.getenv("CLICKHOUSE_PASSWORD", "")
+
+        # Use SSL port by default if secure
+        self.secure = secure or os.getenv("CLICKHOUSE_SECURE", "n").lower()
+        self.secure = self.secure in ("true", "t", "yes", "y", "1")
+        self.port = 9440 if self.secure else self.port
 
         self.client = Client(
             host=self.host,
             port=self.port,
             database=self.database,
-            user=os.getenv("CLICKHOUSE_USER", "default"),
-            password=os.getenv("CLICKHOUSE_PASSWORD", ""),
+            user=self.user,
+            password=self.password,
+            secure=self.secure,
+            verify=False,
         )
 
         self._cluster = None
