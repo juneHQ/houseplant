@@ -247,6 +247,23 @@ production:
 
             self.console.print(f"✨ Generated migration: {migration_file}")
 
+    def db_schema_load(self):
+        """Load schema migrations from migration files without applying them."""
+        migration_files = get_migration_files()
+        if not migration_files:
+            self.console.print("[yellow]No migrations found.[/yellow]")
+            return
+
+        with self.console.status("[bold green]Loading schema migrations..."):
+            for migration_file in migration_files:
+                migration_version = migration_file.split("_")[0]
+                self.db.mark_migration_applied(migration_version)
+                self.console.print(
+                    f"[green]✓[/green] Loaded migration {migration_file}"
+                )
+
+        self.console.print("✨ Schema migrations loaded successfully!")
+
     def update_schema(self):
         """Update the schema file with the current database schema."""
 

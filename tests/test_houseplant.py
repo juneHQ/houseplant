@@ -397,6 +397,17 @@ def test_update_schema_no_duplicates(houseplant, duplicate_migrations, mocker):
     ), f"Table 'events' appears {table_count} times in schema, expected 1"
 
 
+def test_db_schema_load(houseplant, test_migration, mocker):
+    # Mock database calls
+    mock_mark_applied = mocker.patch.object(houseplant.db, "mark_migration_applied")
+
+    # Run schema load
+    houseplant.db_schema_load()
+
+    # Verify migration was marked as applied without executing SQL
+    mock_mark_applied.assert_called_once_with("20240101000000")
+
+
 @pytest.mark.skip
 def test_migrate_down(houseplant, test_migration, mocker):
     # Mock database calls
