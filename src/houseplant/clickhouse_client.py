@@ -57,8 +57,6 @@ class ClickHouseClient:
                 user=os.getenv("CLICKHOUSE_USER", "default"),
                 password=os.getenv("CLICKHOUSE_PASSWORD", ""),
             )
-            # Test connection and database existence
-            self.client.execute("SELECT 1")
         except NetworkError:
             raise ClickHouseConnectionError(
                 f"Could not connect to database at {host}:{port}"

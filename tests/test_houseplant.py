@@ -441,7 +441,14 @@ def test_migrate_up_missing_version(houseplant, test_migration, mocker):
     mock_get_applied.assert_called_once()
 
 
-def test_migrate_up_missing_table_field(houseplant, tmp_path):
+def test_migrate_up_missing_table_field(houseplant, tmp_path, mocker):
+    # Mock database calls
+    mock_execute = mocker.patch.object(houseplant.db, "execute_migration")
+    mock_mark_applied = mocker.patch.object(houseplant.db, "mark_migration_applied")
+    mock_get_applied = mocker.patch.object(
+        houseplant.db, "get_applied_migrations", return_value=[]
+    )
+
     # Set up test environment with invalid migration
     migrations_dir = tmp_path / "ch/migrations"
     migrations_dir.mkdir(parents=True)
@@ -473,6 +480,9 @@ production:
     # Run migration
     houseplant.migrate_up()
 
+    # Verify mocks were called appropriately
+    mock_get_applied.assert_called_once()
+
 
 def test_migrate_down_no_migrations(houseplant, mocker):
     # Mock database calls
@@ -500,7 +510,7 @@ def test_migrate_down_missing_migration_file(houseplant, mocker):
     mock_get_applied.assert_called_once()
 
 
-def test_migrate_down_missing_table_field(houseplant, tmp_path):
+def test_migrate_down_missing_table_field(houseplant, tmp_path, mocker):
     # Set up test environment with invalid migration
     migrations_dir = tmp_path / "ch/migrations"
     migrations_dir.mkdir(parents=True)
@@ -530,7 +540,6 @@ production:
     os.chdir(tmp_path)
 
     # Mock database calls
-    mocker = pytest.importorskip("pytest_mock").mocker
     mock_get_applied = mocker.patch.object(
         houseplant.db, "get_applied_migrations", return_value=[("20240101000000",)]
     )

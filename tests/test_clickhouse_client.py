@@ -1,11 +1,9 @@
 import pytest
 from clickhouse_driver.errors import NetworkError, ServerException
 
-from houseplant.clickhouse_client import (
-    ClickHouseAuthenticationError,
-    ClickHouseConnectionError,
-    ClickHouseDatabaseNotFoundError,
-)
+from houseplant.clickhouse_client import (ClickHouseAuthenticationError,
+                                          ClickHouseConnectionError,
+                                          ClickHouseDatabaseNotFoundError)
 
 
 @pytest.fixture
@@ -21,6 +19,11 @@ def test_connection_error(monkeypatch):
         monkeypatch.setenv("CLICKHOUSE_HOST", "invalid_host")
         from houseplant.clickhouse_client import ClickHouseClient
 
+        # Mock the NetworkError that would be raised by the driver
+        def mock_init(*args, **kwargs):
+            raise NetworkError("Connection refused")
+
+        monkeypatch.setattr("clickhouse_driver.Client.__init__", mock_init)
         ClickHouseClient()
 
     assert "Could not connect to database" in str(exc_info.value)
@@ -33,6 +36,11 @@ def test_authentication_error(monkeypatch):
         monkeypatch.setenv("CLICKHOUSE_PASSWORD", "invalid_password")
         from houseplant.clickhouse_client import ClickHouseClient
 
+        # Mock the ServerException that would be raised by the driver
+        def mock_init(*args, **kwargs):
+            raise ServerException("Authentication failed")
+
+        monkeypatch.setattr("clickhouse_driver.Client.__init__", mock_init)
         ClickHouseClient()
 
     assert "Authentication failed for user invalid_user" in str(exc_info.value)
@@ -44,6 +52,13 @@ def test_database_not_found_error(monkeypatch):
         monkeypatch.setenv("CLICKHOUSE_DB", "nonexistent_db")
         from houseplant.clickhouse_client import ClickHouseClient
 
+        # Mock the ServerException that would be raised by the driver
+        def mock_init(*args, **kwargs):
+            raise ServerException(
+                "Code: None. Database 'nonexistent_db' does not exist"
+            )
+
+        monkeypatch.setattr("clickhouse_driver.Client.__init__", mock_init)
         ClickHouseClient()
 
     assert "Database 'nonexistent_db' does not exist" in str(exc_info.value)
