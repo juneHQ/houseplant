@@ -9,7 +9,11 @@ from rich.console import Console
 from houseplant import __version__, Houseplant
 
 
-app = typer.Typer(add_completion=False, no_args_is_help=True)
+app = typer.Typer(
+    add_completion=False,
+    no_args_is_help=True,
+    help="Database Migrations for ClickHouse",
+)
 
 
 def get_houseplant() -> Houseplant:
@@ -79,6 +83,13 @@ def migrate_down(version: Optional[str] = typer.Argument(None)):
     hp = get_houseplant()
     version = version or os.getenv("VERSION")
     hp.migrate_down(version)
+
+
+@app.command(name="db:schema:load")
+def db_schema_load():
+    """Load the schema migrations from migrations directory."""
+    hp = get_houseplant()
+    hp.db_schema_load()
 
 
 @app.command(hidden=True)
