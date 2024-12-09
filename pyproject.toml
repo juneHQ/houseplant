@@ -16,7 +16,8 @@ dependencies = [
   "clickhouse-driver>=0.2.9",
   "pyyaml>=6.0.2",
   "ruff>=0.7.4",
-  "typer",
+  "typer>=0.14.0",
+  "python-dotenv>=1.0.1",
 ]
 
 [build-system]
@@ -39,5 +40,6 @@ dev = [
     "pytest",  # testing
     "pytest-cov",  # testing
     "pytest-mock",  # mocking
-    "ruff"  # linting
+    "ruff",  # linting
+    "isort",  # linting
 ]
