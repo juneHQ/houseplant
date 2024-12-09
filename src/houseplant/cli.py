@@ -1,12 +1,17 @@
 """Console script for houseplant."""
 
 import os
+from pathlib import Path
 from typing import Optional
 
 import typer
+from dotenv import load_dotenv
 from rich.console import Console
 
 from houseplant import Houseplant, __version__
+
+# Load environment variables from .env file in current directory
+load_dotenv(Path.cwd() / ".env")
 
 app = typer.Typer(
     add_completion=False,

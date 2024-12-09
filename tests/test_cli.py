@@ -1,3 +1,5 @@
+import os
+from pathlib import Path
 from typing import Generator
 
 import pytest
@@ -16,6 +18,27 @@ def mock_houseplant(mocker) -> Generator[None, None, None]:
     mock_instance = mocker.Mock(spec=Houseplant)
     mock.return_value = mock_instance
     yield mock_instance
+
+
+def test_dotenv_loading(tmp_path, monkeypatch):
+    """Test that .env file is loaded."""
+    assert os.getenv("CLICKHOUSE_HOST") is None
+
+    # Create a temporary .env file
+    env_file = tmp_path / ".env"
+    env_file.write_text("CLICKHOUSE_HOST=test.host")
+
+    # Set current working directory to tmp_path
+    monkeypatch.chdir(tmp_path)
+
+    # Import cli module to trigger .env loading
+    import importlib
+
+    import houseplant.cli
+
+    importlib.reload(houseplant.cli)
+
+    assert os.getenv("CLICKHOUSE_HOST") == "test.host"
 
 
 def test_version_flag():
