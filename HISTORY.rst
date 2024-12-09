@@ -2,6 +2,11 @@
 History
 =======
 
+0.2.2 (2024-12-09)
+------------------
+
+* Add support for `.env` files in the current directory.
+
 0.2.1 (2024-12-06)
 ------------------
 

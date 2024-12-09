@@ -1,6 +1,6 @@
 [project]
 name = "houseplant"
-version = "0.2.1"
+version = "0.2.2"
 description = "Database Migrations for ClickHouse."
 readme = "README.md"
 authors = [{name = "June", email = "eng@june.so"}]
