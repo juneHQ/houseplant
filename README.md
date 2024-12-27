@@ -8,7 +8,7 @@
 [![image](https://img.shields.io/pypi/l/houseplant.svg)](https://pypi.org/project/houseplant/)
 [![image](https://img.shields.io/pypi/pyversions/houseplant.svg)](https://pypi.org/project/houseplant/)
 
-**Houseplant** is a CLI tool that helps you manage database migrations for ClickHouse!
+**Houseplant** is a CLI tool that helps you manage database migrations for ClickHouse.
 
 ---
 

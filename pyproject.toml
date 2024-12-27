@@ -8,9 +8,9 @@ maintainers = [{name = "June", email = "eng@june.so"}]
 license = {text = "MIT license"}
 classifiers = [
   "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
-  "Programming Language :: Python :: 3.14",
 ]
 dependencies = [
   "clickhouse-driver>=0.2.9",
@@ -42,4 +42,6 @@ dev = [
     "pytest-mock",  # mocking
     "ruff",  # linting
     "isort",  # linting
+    "sphinx",  # documentation
+    "tomli",  # documentation
 ]
