@@ -148,7 +148,7 @@ texinfo_documents = [
         "houseplant Documentation",
         author,
         "houseplant",
-        "One line description of project.",
+        "Database Migrations for ClickHouse",
         "Miscellaneous",
     ),
 ]

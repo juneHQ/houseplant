@@ -1,17 +1,14 @@
-Welcome to houseplant's documentation!
-======================================
+Houseplant: Database Migrations for ClickHouse
+==============================================
+
+Houseplant is a CLI tool that helps you manage database migrations for ClickHouse.
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
-   readme
-   installation
+   install
    usage
-   modules
-   contributing
-   authors
-   history
 
 Indices and tables
 ==================
