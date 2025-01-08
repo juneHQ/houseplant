@@ -108,11 +108,7 @@ class Houseplant:
                 with open(os.path.join(MIGRATIONS_DIR, migration_file), "r") as f:
                     migration = yaml.safe_load(f)
 
-                # Get migration SQL based on environment
-                migration_sql = migration.get(self.env, {}).get("up", {}).strip()
-
                 table = migration.get("table", "").strip()
-
                 if not table:
                     self.console.print(
                         "[red]✗[/red] Migration [bold red]failed[/bold red]: "
@@ -144,9 +140,12 @@ class Houseplant:
                         }
                     )
 
-                migration_sql = migration_sql.format(**format_args).strip()
+                # Get migration SQL based on environment
+                migration_env: dict = migration.get(self.env, {})
+                migration_sql = migration_env.get("up", "").format(**format_args).strip()
+
                 if migration_sql:
-                    self.db.execute_migration(migration_sql)
+                    self.db.execute_migration(migration_sql, migration_env.get("query_settings"))
                     self.db.mark_migration_applied(migration_version)
                     self.console.print(
                         f"[green]✓[/green] Applied migration {migration_file}"
@@ -200,8 +199,6 @@ class Houseplant:
                 with open(os.path.join(MIGRATIONS_DIR, migration_file), "r") as f:
                     migration = yaml.safe_load(f)
 
-                # Get migration SQL based on environment
-                migration_sql = migration.get(self.env, {}).get("down", {}).strip()
                 table = migration.get("table", "").strip()
                 if not table:
                     self.console.print(
@@ -209,19 +206,20 @@ class Houseplant:
                         "'table' field is required in migration file"
                     )
                     return
-                migration_sql = migration_sql.format(table=table).strip()
+
+                # Get migration SQL based on environment
+                migration_env = migration.get(self.env, {})
+                migration_sql = migration_env.get("down", {}).format(table=table).strip()
 
                 if migration_sql:
-                    self.db.execute_migration(migration_sql)
+                    self.db.execute_migration(migration_sql, migration_env.get('query_settings'))
                     self.db.mark_migration_rolled_back(migration_version)
                     self.update_schema()
-                    self.console.print(
-                        f"[green]✓[/green] Rolled back migration {migration_file}"
-                    )
-                else:
-                    self.console.print(
-                        f"[yellow]⚠[/yellow] Empty down migration {migration_file}"
-                    )
+                    self.console.print(f"[green]✓[/green] Rolled back migration {migration_file}")
+
+                    return
+
+                self.console.print(f"[yellow]⚠[/yellow] Empty down migration {migration_file}")
 
     def migrate(self, version: str | None = None):
         """Run migrations up to specified version."""
@@ -335,9 +333,9 @@ production:
                     processed_tables.add(table_name)
 
             # Finally dictionaries
-            for dict in dictionaries:
-                if dict[0] == table_name:
-                    dict_name = dict[0]
+            for ch_dict in dictionaries:
+                if ch_dict[0] == table_name:
+                    dict_name = ch_dict[0]
                     create_stmt = self.db.client.execute(
                         f"SHOW CREATE DICTIONARY {dict_name}"
                     )[0][0]
