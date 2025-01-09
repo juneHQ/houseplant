@@ -26,7 +26,16 @@ class Houseplant:
                 "or ensure you're in the correct directory."
             )
             raise SystemExit(1)
-
+    
+    def _init_migrations_dir(self):
+        """Create migrations directory. If already exists raise formatted error to rename it."""
+        if os.path.exists(MIGRATIONS_DIR):
+            self.console.print("[red]Error:[/red] Migrations directory exists")
+            self.console.print(
+                "\nPlease rename it and retry [bold]houseplant init[/bold] to create a new project "
+            )
+            raise SystemExit(1)
+    
     def init(self):
         """Initialize a new houseplant project."""
         with self.console.status("[bold green]Initializing new houseplant project..."):
