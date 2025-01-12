@@ -228,12 +228,14 @@ development:
 
 
 def test_migration_with_settings(houseplant, migration_with_settings, mocker):
-    mock_execute = mocker.patch.object(houseplant.db.client, 'execute')
-    settings = {'settings': {'enable_dynamic_type': 1, 'max_table_size_to_drop': 0}}
+    mock_execute = mocker.patch.object(houseplant.db.client, "execute")
+    settings = {"settings": {"enable_dynamic_type": 1, "max_table_size_to_drop": 0}}
 
     houseplant.migrate_up()
     assert list(mock_execute.call_args_list[1]) == [
-        ('CREATE TABLE dynamic_type_table (d Dynamic) ENGINE = MergeTree() ORDER BY d', ),
+        (
+            "CREATE TABLE dynamic_type_table (d Dynamic) ENGINE = MergeTree() ORDER BY d",
+        ),
         settings,
     ]
 
@@ -244,7 +246,7 @@ def test_migration_with_settings(houseplant, migration_with_settings, mocker):
 
     houseplant.migrate_down()
     assert list(mock_execute.call_args_list[4]) == [
-        ('DROP TABLE dynamic_type_table',),
+        ("DROP TABLE dynamic_type_table",),
         settings,
     ]
 
