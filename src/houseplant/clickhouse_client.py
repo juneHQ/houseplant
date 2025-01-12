@@ -1,7 +1,6 @@
 """ClickHouse database operations module."""
 
 import os
-import sys
 
 from clickhouse_driver import Client
 from clickhouse_driver.errors import NetworkError, ServerException
@@ -235,12 +234,12 @@ class ClickHouseClient:
             ORDER BY version
         """)
 
-    def execute_migration(self, sql: str):
+    def execute_migration(self, sql: str, query_settings: dict = None):
         """Execute a migration SQL statement."""
         # Split multiple statements and execute them separately
         statements = [stmt.strip() for stmt in sql.split(";") if stmt.strip()]
         for statement in statements:
-            self.client.execute(statement)
+            self.client.execute(statement, settings=query_settings)
 
     def mark_migration_applied(self, version: str):
         """Mark a migration as applied."""

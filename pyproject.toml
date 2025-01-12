@@ -8,16 +8,17 @@ maintainers = [{name = "June", email = "eng@june.so"}]
 license = {text = "MIT license"}
 classifiers = [
   "License :: OSI Approved :: MIT License",
+  "Topic :: Database",
+  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
-  "clickhouse-driver>=0.2.9",
-  "pyyaml>=6.0.2",
-  "ruff>=0.7.4",
-  "typer>=0.14.0",
-  "python-dotenv>=1.0.1",
+  "clickhouse-driver >= 0.2.9, < 0.3",
+  "pyyaml >= 6.0.2, < 6.1",
+  "typer >= 0.14.0, < 0.15",
+  "python-dotenv >= 1.0.1, < 1.1",
 ]
 
 [build-system]
@@ -35,13 +36,10 @@ houseplant = "houseplant.cli:app"
 
 [project.optional-dependencies]
 dev = [
-    "coverage",  # testing
-    "mypy",  # linting
-    "pytest",  # testing
-    "pytest-cov",  # testing
-    "pytest-mock",  # mocking
-    "ruff",  # linting
-    "isort",  # linting
-    "sphinx",  # documentation
-    "tomli",  # documentation
+    "ruff==0.8.6",         # linting
+    "pytest==8.3.4",       # testing
+    "pytest-cov==6.0.0",   # testing
+    "pytest-mock==3.14.0", # testing
+    "sphinx",              # documentation
+    "tomli",               # documentation
 ]

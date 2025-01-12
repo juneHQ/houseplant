@@ -1,12 +1,10 @@
 import os
-from pathlib import Path
 from typing import Generator
 
 import pytest
-from typer.testing import CliRunner
-
 from houseplant import Houseplant, __version__
 from houseplant.cli import app
+from typer.testing import CliRunner
 
 runner = CliRunner()
 

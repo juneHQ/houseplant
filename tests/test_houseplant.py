@@ -204,6 +204,51 @@ production:
     return ("20240101000000", "20240102000000")
 
 
+@pytest.fixture
+def migration_with_settings(tmp_path):
+    migrations_dir = tmp_path / "ch/migrations"
+    migrations_dir.mkdir(parents=True)
+    migration_file = migrations_dir / "20240101000000_test_migration_with_settings.yml"
+
+    migration_content = """version: "20240101000000"
+name: test_migration_with_settings
+table: dynamic_type_table
+
+development:
+  query_settings:
+    enable_dynamic_type: 1
+    max_table_size_to_drop: 0
+  up: CREATE TABLE {table} (d Dynamic) ENGINE = MergeTree() ORDER BY d
+  down: DROP TABLE {table}
+"""
+
+    migration_file.write_text(migration_content)
+    os.chdir(tmp_path)
+    return migration_content
+
+
+def test_migration_with_settings(houseplant, migration_with_settings, mocker):
+    mock_execute = mocker.patch.object(houseplant.db.client, 'execute')
+    settings = {'settings': {'enable_dynamic_type': 1, 'max_table_size_to_drop': 0}}
+
+    houseplant.migrate_up()
+    assert list(mock_execute.call_args_list[1]) == [
+        ('CREATE TABLE dynamic_type_table (d Dynamic) ENGINE = MergeTree() ORDER BY d', ),
+        settings,
+    ]
+
+    mocker.patch.object(houseplant.db, "mark_migration_rolled_back")
+    mocker.patch.object(
+        houseplant.db, "get_applied_migrations", return_value=[("20240101000000",)]
+    )
+
+    houseplant.migrate_down()
+    assert list(mock_execute.call_args_list[4]) == [
+        ('DROP TABLE dynamic_type_table',),
+        settings,
+    ]
+
+
 def test_migrate_up_development(houseplant, test_migration, mocker):
     # Mock environment and database calls
     houseplant.env = "development"
@@ -222,7 +267,8 @@ def test_migrate_up_development(houseplant, test_migration, mocker):
     name String
 ) ENGINE = MergeTree()
 ORDER BY id"""
-    mock_execute.assert_called_once_with(expected_sql)
+
+    mock_execute.assert_called_once_with(expected_sql, None)
     mock_mark_applied.assert_called_once_with("20240101000000")
     mock_get_applied.assert_called_once()
 
@@ -245,7 +291,8 @@ def test_migrate_up_production(houseplant, test_migration, mocker):
     name String
 ) ENGINE = ReplicatedMergeTree()
 ORDER BY id"""
-    mock_execute.assert_called_once_with(expected_sql)
+
+    mock_execute.assert_called_once_with(expected_sql, None)
     mock_mark_applied.assert_called_once_with("20240101000000")
     mock_get_applied.assert_called_once()
 
@@ -272,7 +319,8 @@ created_at DateTime
 ) ENGINE = MergeTree()
 ORDER BY (id, created_at)
 PARTITION BY toYYYYMM(created_at)"""
-    mock_execute.assert_called_once_with(expected_sql)
+
+    mock_execute.assert_called_once_with(expected_sql, None)
     mock_mark_applied.assert_called_once_with("20240101000000")
     mock_get_applied.assert_called_once()
 
@@ -299,7 +347,8 @@ created_at DateTime
 ) ENGINE = MergeTree()
 ORDER BY (id, created_at)
 PARTITION BY toYYYYMM(created_at)"""
-    mock_execute.assert_called_once_with(expected_sql)
+
+    mock_execute.assert_called_once_with(expected_sql, None)
     mock_mark_applied.assert_called_once_with("20240101000000")
     mock_get_applied.assert_called_once()
 
@@ -324,7 +373,8 @@ name String,
 created_at DateTime
 )
 AS SELECT * FROM events"""
-    mock_execute.assert_called_once_with(expected_sql)
+
+    mock_execute.assert_called_once_with(expected_sql, None)
     mock_mark_applied.assert_called_once_with("20240101000000")
     mock_get_applied.assert_called_once()
 
@@ -350,7 +400,8 @@ name String,
 created_at DateTime
 )
 AS SELECT * FROM events"""
-    mock_execute.assert_called_once_with(expected_sql)
+
+    mock_execute.assert_called_once_with(expected_sql, None)
     mock_mark_applied.assert_called_once_with("20240101000000")
     mock_get_applied.assert_called_once()
 
@@ -443,8 +494,8 @@ def test_migrate_up_missing_version(houseplant, test_migration, mocker):
 
 def test_migrate_up_missing_table_field(houseplant, tmp_path, mocker):
     # Mock database calls
-    mock_execute = mocker.patch.object(houseplant.db, "execute_migration")
-    mock_mark_applied = mocker.patch.object(houseplant.db, "mark_migration_applied")
+    mocker.patch.object(houseplant.db, "execute_migration")
+    mocker.patch.object(houseplant.db, "mark_migration_applied")
     mock_get_applied = mocker.patch.object(
         houseplant.db, "get_applied_migrations", return_value=[]
     )
