@@ -2,6 +2,11 @@
 History
 =======
 
+0.2.3 (2025-01-12)
+------------------
+
+* Add support for query settings in migrations.
+
 0.2.2 (2024-12-09)
 ------------------
 
