@@ -142,10 +142,14 @@ class Houseplant:
 
                 # Get migration SQL based on environment
                 migration_env: dict = migration.get(self.env, {})
-                migration_sql = migration_env.get("up", "").format(**format_args).strip()
+                migration_sql = (
+                    migration_env.get("up", "").format(**format_args).strip()
+                )
 
                 if migration_sql:
-                    self.db.execute_migration(migration_sql, migration_env.get("query_settings"))
+                    self.db.execute_migration(
+                        migration_sql, migration_env.get("query_settings")
+                    )
                     self.db.mark_migration_applied(migration_version)
                     self.console.print(
                         f"[green]✓[/green] Applied migration {migration_file}"
@@ -209,17 +213,25 @@ class Houseplant:
 
                 # Get migration SQL based on environment
                 migration_env = migration.get(self.env, {})
-                migration_sql = migration_env.get("down", {}).format(table=table).strip()
+                migration_sql = (
+                    migration_env.get("down", {}).format(table=table).strip()
+                )
 
                 if migration_sql:
-                    self.db.execute_migration(migration_sql, migration_env.get('query_settings'))
+                    self.db.execute_migration(
+                        migration_sql, migration_env.get("query_settings")
+                    )
                     self.db.mark_migration_rolled_back(migration_version)
                     self.update_schema()
-                    self.console.print(f"[green]✓[/green] Rolled back migration {migration_file}")
+                    self.console.print(
+                        f"[green]✓[/green] Rolled back migration {migration_file}"
+                    )
 
                     return
 
-                self.console.print(f"[yellow]⚠[/yellow] Empty down migration {migration_file}")
+                self.console.print(
+                    f"[yellow]⚠[/yellow] Empty down migration {migration_file}"
+                )
 
     def migrate(self, version: str | None = None):
         """Run migrations up to specified version."""
