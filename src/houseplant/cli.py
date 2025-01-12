@@ -26,6 +26,11 @@ def get_houseplant() -> Houseplant:
     houseplant.db._check_clickhouse_connection()
     return houseplant
 
+def init_houseplant() -> Houseplant:
+    houseplant = Houseplant()
+    houseplant._init_migrations_dir()
+    houseplant.db._check_clickhouse_connection()
+    return houseplant
 
 def version_callback(value: bool):
     if value:
@@ -51,7 +56,7 @@ def common(
 @app.command()
 def init():
     """Initialize a new houseplant project."""
-    hp = get_houseplant()
+    hp = init_houseplant()
     hp.init()
 
 
