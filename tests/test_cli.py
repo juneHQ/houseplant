@@ -2,19 +2,44 @@ import os
 from typing import Generator
 
 import pytest
+from typer.testing import CliRunner
+
 from houseplant import Houseplant, __version__
 from houseplant.cli import app
-from typer.testing import CliRunner
 
 runner = CliRunner()
 
 
+@pytest.fixture(autouse=True)
+def mock_clickhouse(mocker):
+    """Mock ClickHouse connection and client for all tests."""
+    # Mock the clickhouse_driver.Client
+    mock_client = mocker.patch("houseplant.clickhouse_client.Client", autospec=True)
+
+    # Create a mock instance with required methods and attributes
+    client_instance = mocker.Mock()
+    client_instance.execute.return_value = [[1]]  # Default successful response
+    client_instance.connection = mocker.Mock()
+    client_instance.connection.database = "test_db"
+    mock_client.return_value = client_instance
+
+    return client_instance
+
+
 @pytest.fixture
-def mock_houseplant(mocker) -> Generator[None, None, None]:
+def mock_houseplant(mocker, mock_clickhouse) -> Generator[None, None, None]:
     """Mock the Houseplant class to avoid actual operations during testing."""
-    mock = mocker.patch("houseplant.cli.get_houseplant", autospec=True)
     mock_instance = mocker.Mock(spec=Houseplant)
-    mock.return_value = mock_instance
+
+    # Set up the mock instance with a working db connection
+    mock_instance.db = mocker.Mock()
+    mock_instance.db.client = mock_clickhouse
+    mock_instance.db._check_clickhouse_connection.return_value = None
+
+    # Mock both the Houseplant class constructor and get_houseplant function
+    mocker.patch("houseplant.cli.Houseplant", return_value=mock_instance)
+    mocker.patch("houseplant.cli.get_houseplant", return_value=mock_instance)
+
     yield mock_instance
 
 
