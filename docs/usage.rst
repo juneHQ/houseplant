@@ -141,4 +141,4 @@ Houseplant uses the following environment variables:
 - ``CLICKHOUSE_PORT``: ClickHouse server port
 - ``CLICKHOUSE_USER``: ClickHouse username
 - ``CLICKHOUSE_PASSWORD``: ClickHouse password
-- ``CLICKHOUSE_DATABASE``: ClickHouse database name
+- ``CLICKHOUSE_DB``: ClickHouse database name

@@ -51,7 +51,7 @@ def common(
 @app.command()
 def init():
     """Initialize a new houseplant project."""
-    hp = get_houseplant()
+    hp = Houseplant()
     hp.init()
 
 
