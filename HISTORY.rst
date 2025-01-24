@@ -2,6 +2,12 @@
 History
 =======
 
+0.2.4 (2025-01-24)
+------------------
+
+* Fix init command.
+* Fix `CLICKHOUSE_DB` variable name in docs.
+
 0.2.3 (2025-01-12)
 ------------------
 
