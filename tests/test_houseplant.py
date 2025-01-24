@@ -227,6 +227,24 @@ development:
     return migration_content
 
 
+def test_init(houseplant, tmp_path, mocker):
+    # Mock database calls
+    mock_init_migrations = mocker.patch.object(houseplant.db, "init_migrations_table")
+
+    # Change to temp directory
+    os.chdir(tmp_path)
+
+    # Run init
+    houseplant.init()
+
+    # Verify directories and files were created
+    assert os.path.exists("ch/migrations")
+    assert os.path.exists("ch/schema.sql")
+
+    # Verify migrations table was initialized
+    mock_init_migrations.assert_called_once()
+
+
 def test_migration_with_settings(houseplant, migration_with_settings, mocker):
     mock_execute = mocker.patch.object(houseplant.db.client, "execute")
     settings = {"settings": {"enable_dynamic_type": 1, "max_table_size_to_drop": 0}}
