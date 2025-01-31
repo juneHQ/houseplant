@@ -65,6 +65,8 @@ Houseplant uses the following environment variables to connect to your ClickHous
 - `CLICKHOUSE_DB`: Database name (default: "development")
 - `CLICKHOUSE_USER`: Username for authentication (default: "default")
 - `CLICKHOUSE_PASSWORD`: Password for authentication (default: "")
+- `CLICKHOUSE_SECURE`: Enable secure connection via the `secure` flag of ClickHouse client (default: False)
+- `CLICKHOUSE_VERIFY`: Enable certificate verifiaction `verify` flag of ClickHouse client (default: False)
 
 ## Contributing
 
