@@ -61,6 +61,10 @@ class ClickHouseClient:
         self.secure = self.secure in ("true", "t", "yes", "y", "1")
         self.port = 9440 if self.secure else self.port
 
+        # Disable verification unless specified otherwise
+        self.verify = os.getenv("CLICKHOUSE_VERIFY", "n").lower()
+        self.verify = self.verify in ("true", "t", "yes", "y", "1")
+
         self.client = Client(
             host=self.host,
             port=self.port,
@@ -68,7 +72,7 @@ class ClickHouseClient:
             user=self.user,
             password=self.password,
             secure=self.secure,
-            verify=False,
+            verify=self.verify,
         )
 
         self._cluster = None
