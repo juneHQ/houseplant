@@ -2,6 +2,11 @@
 History
 =======
 
+0.2.5 (2025-02-27)
+------------------
+
+* Add `CLICKHOUSE_VERIFY` environment variable.
+
 0.2.4 (2025-01-24)
 ------------------
 
