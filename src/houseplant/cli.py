@@ -99,6 +99,13 @@ def db_schema_load():
     hp.db_schema_load()
 
 
+@app.command(name="db:schema:dump")
+def db_schema_dump():
+    """Dump the schema to schema.sql file."""
+    hp = get_houseplant()
+    hp.db_schema_dump()
+
+
 @app.command(hidden=True)
 def main():
     """Console script for houseplant."""

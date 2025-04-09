@@ -283,6 +283,18 @@ production:
 
         self.console.print("✨ Schema migrations loaded successfully!")
 
+    def db_schema_dump(self):
+        """Dump db schema to schema.sql file."""
+        migration_files = get_migration_files()
+        if not migration_files:
+            self.console.print("[yellow]No migrations found.[/yellow]")
+            return
+
+        with self.console.status("[bold green]Dumping schema..."):
+            self.update_schema()
+
+        self.console.print("✨ Schema dumped successfully!")
+
     def update_schema(self):
         """Update the schema file with the current database schema."""
 
