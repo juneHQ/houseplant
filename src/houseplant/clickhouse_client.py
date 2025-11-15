@@ -192,38 +192,41 @@ class ClickHouseClient:
         """)
         return result[0][0] if result else None
 
-    def get_database_tables(self):
+    def get_database_tables(self, database=None):
         """Get the database tables with their engines, indexes and partitioning."""
-        return self.client.execute("""
+        database_expr = f"'{database}'" if database else "currentDatabase()"
+        return self.client.execute(f"""
             SELECT
                 name
             FROM system.tables
-            WHERE database = currentDatabase()
+            WHERE database = {database_expr}
                 AND position('MergeTree' IN engine) > 0
                 AND engine NOT IN ('MaterializedView', 'Dictionary')
                 AND name != 'schema_migrations'
             ORDER BY name
         """)
 
-    def get_database_materialized_views(self):
+    def get_database_materialized_views(self, database=None):
         """Get the database materialized views."""
-        return self.client.execute("""
+        database_expr = f"'{database}'" if database else "currentDatabase()"
+        return self.client.execute(f"""
             SELECT
                 name
             FROM system.tables
-            WHERE database = currentDatabase()
+            WHERE database = {database_expr}
                 AND engine = 'MaterializedView'
                 AND name != 'schema_migrations'
             ORDER BY name
         """)
 
-    def get_database_dictionaries(self):
+    def get_database_dictionaries(self, database=None):
         """Get the database dictionaries."""
-        return self.client.execute("""
+        database_expr = f"'{database}'" if database else "currentDatabase()"
+        return self.client.execute(f"""
             SELECT
                 name
             FROM system.tables
-            WHERE database = currentDatabase()
+            WHERE database = {database_expr}
                 AND engine = 'Dictionary'
                 AND name != 'schema_migrations'
             ORDER BY name

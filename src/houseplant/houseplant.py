@@ -116,10 +116,12 @@ class Houseplant:
                     )
                     return
 
+                database = migration.get("database", "").strip() or self.db.database
+
                 table_definition = migration.get("table_definition", "").strip()
                 table_settings = migration.get("table_settings", "").strip()
 
-                format_args = {"table": table}
+                format_args = {"table": table, "database": database}
                 if table_definition and table_settings:
                     format_args.update(
                         {
@@ -211,10 +213,12 @@ class Houseplant:
                     )
                     return
 
+                database = migration.get("database", "").strip() or self.db.database
+
                 # Get migration SQL based on environment
                 migration_env = migration.get(self.env, {})
                 migration_sql = (
-                    migration_env.get("down", {}).format(table=table).strip()
+                    migration_env.get("down", {}).format(table=table, database=database).strip()
                 )
 
                 if migration_sql:
@@ -249,6 +253,7 @@ class Houseplant:
                 f.write(f"""version: "{timestamp}"
 name: {migration_name}
 table:
+# database:  # Optional: specify database name (defaults to CLICKHOUSE_DB)
 
 development: &development
   up: |
@@ -291,12 +296,8 @@ production:
         migration_files = get_migration_files()
         latest_version = applied_migrations[-1][0] if applied_migrations else "0"
 
-        # Get all database objects
-        tables = self.db.get_database_tables()
-        materialized_views = self.db.get_database_materialized_views()
-        dictionaries = self.db.get_database_dictionaries()
-
         # Track processed tables to ensure first migration takes precedence
+        # Use qualified names (database.table) to avoid conflicts across databases
         processed_tables = set()
 
         # Group statements by type
@@ -316,43 +317,58 @@ production:
             with open(migration_file) as f:
                 migration_data = yaml.safe_load(f)
 
-            # Extract table name from migration
+            # Extract table name and database from migration
             table_name = migration_data.get("table")
             if not table_name:
                 continue
 
+            database = migration_data.get("database", "").strip() or self.db.database
+
+            # Build qualified table identifier for tracking
+            qualified_name = f"{database}.{table_name}" if database else table_name
+
             # Skip if we've already processed this table
-            if table_name in processed_tables:
+            if qualified_name in processed_tables:
                 continue
+
+            # Get database objects from the specified database
+            tables = self.db.get_database_tables(database)
+            materialized_views = self.db.get_database_materialized_views(database)
+            dictionaries = self.db.get_database_dictionaries(database)
 
             # Check tables first
             for table in tables:
                 if table[0] == table_name:
+                    # Use qualified name in SHOW CREATE query when database is specified
+                    table_ref = f"{database}.{table_name}" if database else table_name
                     create_stmt = self.db.client.execute(
-                        f"SHOW CREATE TABLE {table_name}"
+                        f"SHOW CREATE TABLE {table_ref}"
                     )[0][0]
                     table_statements.append(create_stmt)
-                    processed_tables.add(table_name)
+                    processed_tables.add(qualified_name)
+                    break
 
             # Then materialized views
             for mv in materialized_views:
                 if mv[0] == table_name:
-                    mv_name = mv[0]
-                    create_stmt = self.db.client.execute(f"SHOW CREATE VIEW {mv_name}")[
+                    mv_ref = f"{database}.{table_name}" if database else table_name
+                    create_stmt = self.db.client.execute(f"SHOW CREATE VIEW {mv_ref}")[
                         0
                     ][0]
                     mv_statements.append(create_stmt)
-                    processed_tables.add(table_name)
+                    processed_tables.add(qualified_name)
+                    break
 
             # Finally dictionaries
             for ch_dict in dictionaries:
                 if ch_dict[0] == table_name:
-                    dict_name = ch_dict[0]
+                    dict_ref = f"{database}.{table_name}" if database else table_name
                     create_stmt = self.db.client.execute(
-                        f"SHOW CREATE DICTIONARY {dict_name}"
+                        f"SHOW CREATE DICTIONARY {dict_ref}"
                     )[0][0]
                     dict_statements.append(create_stmt)
-                    processed_tables.add(table_name)
+                    processed_tables.add(qualified_name)
+                    break
 
         # Write schema file
         with open("ch/schema.sql", "w") as f:
