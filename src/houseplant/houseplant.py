@@ -11,6 +11,13 @@ from .clickhouse_client import ClickHouseClient
 from .utils import MIGRATIONS_DIR, get_migration_files
 
 
+class EnvVars:
+    """Helper class to access environment variables via attribute syntax."""
+
+    def __getattr__(self, name: str) -> str:
+        return os.getenv(name, "")
+
+
 class Houseplant:
     def __init__(self):
         self.console = Console()
@@ -119,7 +126,7 @@ class Houseplant:
                 table_definition = migration.get("table_definition", "").strip()
                 table_settings = migration.get("table_settings", "").strip()
 
-                format_args = {"table": table}
+                format_args = {"table": table, "env": EnvVars()}
                 if table_definition and table_settings:
                     format_args.update(
                         {
@@ -214,7 +221,9 @@ class Houseplant:
                 # Get migration SQL based on environment
                 migration_env = migration.get(self.env, {})
                 migration_sql = (
-                    migration_env.get("down", {}).format(table=table).strip()
+                    migration_env.get("down", {})
+                    .format(table=table, env=EnvVars())
+                    .strip()
                 )
 
                 if migration_sql:

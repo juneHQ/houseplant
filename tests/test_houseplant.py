@@ -629,3 +629,78 @@ def test_check_migrations_dir_not_found(houseplant, tmp_path):
     # Verify SystemExit is raised when migrations dir not found
     with pytest.raises(SystemExit):
         houseplant._check_migrations_dir()
+
+
+@pytest.fixture
+def test_migration_with_env_vars(tmp_path, monkeypatch):
+    # Set environment variables for the test
+    monkeypatch.setenv("TEST_CLUSTER", "my_cluster")
+    monkeypatch.setenv("TEST_ENGINE", "ReplicatedMergeTree")
+
+    migrations_dir = tmp_path / "ch/migrations"
+    migrations_dir.mkdir(parents=True)
+    migration_file = migrations_dir / "20240101000000_test_env_vars.yml"
+
+    migration_content = """version: "20240101000000"
+name: test_env_vars
+table: events
+
+development: &development
+  up: |
+    CREATE TABLE {table} ON CLUSTER '{env.TEST_CLUSTER}' (
+        id UInt32,
+        name String
+    ) ENGINE = {env.TEST_ENGINE}()
+    ORDER BY id
+  down: |
+    DROP TABLE {table} ON CLUSTER '{env.TEST_CLUSTER}'
+
+test:
+  <<: *development
+
+production:
+  <<: *development
+"""
+
+    migration_file.write_text(migration_content)
+    os.chdir(tmp_path)
+    return migration_content
+
+
+def test_migrate_up_with_env_vars(houseplant, test_migration_with_env_vars, mocker):
+    # Mock database calls
+    houseplant.env = "development"
+    mock_execute = mocker.patch.object(houseplant.db, "execute_migration")
+    mocker.patch.object(houseplant.db, "mark_migration_applied")
+    mocker.patch.object(houseplant.db, "get_applied_migrations", return_value=[])
+
+    # Run migration
+    houseplant.migrate_up()
+
+    # Verify env vars were expanded in the SQL
+    expected_sql = """CREATE TABLE events ON CLUSTER 'my_cluster' (
+    id UInt32,
+    name String
+) ENGINE = ReplicatedMergeTree()
+ORDER BY id"""
+
+    mock_execute.assert_called_once_with(expected_sql, None)
+
+
+def test_migrate_down_with_env_vars(houseplant, test_migration_with_env_vars, mocker):
+    # Mock database calls
+    houseplant.env = "development"
+    mock_execute = mocker.patch.object(houseplant.db, "execute_migration")
+    mocker.patch.object(houseplant.db, "mark_migration_rolled_back")
+    mocker.patch.object(
+        houseplant.db, "get_applied_migrations", return_value=[("20240101000000",)]
+    )
+    mocker.patch.object(houseplant, "update_schema")
+
+    # Run migration down
+    houseplant.migrate_down()
+
+    # Verify env vars were expanded in the SQL
+    expected_sql = "DROP TABLE events ON CLUSTER 'my_cluster'"
+
+    mock_execute.assert_called_once_with(expected_sql, None)
